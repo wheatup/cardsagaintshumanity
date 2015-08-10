@@ -11,6 +11,7 @@ public class BaseDAO {
 		try {
 			Class.forName("org.sqlite.JDBC");
 			playersDB = DriverManager.getConnection("jdbc:sqlite:players.db");
+			BaseDAO.playersDB.setAutoCommit(false);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {

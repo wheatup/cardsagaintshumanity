@@ -10,18 +10,22 @@ public class Main
 	public static void main(String[] args)
 	{
 		DAOIniter.init();
-		
 		long startTime = System.currentTimeMillis();
+		for(int i = 0; i < 100000; i++){
+			PlayerService.logOrRegPlayer("user" + i, "123456");
+		}
 		
-		Player player1 = PlayerService.logOrRegPlayer("admin", "123456");
-		player1.setState(1);
-		player1.savePlayerData();
-		player1.getGameData().setExtData("title", "管理员");
-		player1.saveGameData();
 		
-		Player player2 = PlayerService.logOrRegPlayer("vital", "666");
-		player2.setPassword("123456");
-		player2.savePlayerData();
+//		
+//		Player player1 = PlayerService.logOrRegPlayer("admin", "123456");
+//		player1.setState(2);
+//		player1.savePlayerData();
+//		player1.getGameData().setExtData("title", "猴子");
+//		player1.saveGameData();
+//		
+//		Player player2 = PlayerService.logOrRegPlayer("vital", "qq");
+//		player2.setPassword("qq");
+//		player2.savePlayerData();
 		
 		System.out.println("spent time: " + (System.currentTimeMillis() - startTime));
 	}

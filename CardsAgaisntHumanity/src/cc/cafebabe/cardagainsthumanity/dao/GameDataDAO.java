@@ -26,6 +26,7 @@ public class GameDataDAO
 		    if(BaseDAO.resetMode || !exist){
 		    	stat.executeUpdate("drop table if exists gamedata;");
 			    stat.executeUpdate("create table gamedata (pid INTEGER PRIMARY KEY, credit INTEGER, fish INTEGER, exp INTEGER, ext VARCHAR(500), FOREIGN KEY (pid) REFERENCES player(pid) ON DELETE CASCADE ON UPDATE CASCADE);");
+			    BaseDAO.playersDB.commit();
 		    }
 		    rs.close();
 		    stat.close();
@@ -53,6 +54,7 @@ public class GameDataDAO
 		    prep.setString(5, "");
 		    prep.executeUpdate();
 		    prep.close();
+		    BaseDAO.playersDB.commit();
 		}
 		catch(SQLException e)
 		{
@@ -71,7 +73,7 @@ public class GameDataDAO
 	    PreparedStatement prep;
 		try
 		{
-			prep = BaseDAO.playersDB.prepareStatement("select * from gamedata where pid = ?;");
+			prep = BaseDAO.playersDB.prepareStatement("select credit, fish, exp, ext from gamedata where pid = ?;");
 			prep.setLong(1, pid);
 			ResultSet rs = prep.executeQuery();
 			if(rs.next()){
@@ -106,7 +108,6 @@ public class GameDataDAO
 		try
 		{
 			prep = BaseDAO.playersDB.prepareStatement("update gamedata set credit = ?, fish = ?, exp = ?, ext = ? where pid = ?;");
-			
 		    prep.setInt(1, gameData.getCredit());
 		    prep.setInt(2, gameData.getFish());
 		    prep.setInt(3, gameData.getExp());
@@ -114,6 +115,7 @@ public class GameDataDAO
 		    prep.setLong(5, gameData.getPid());
 		    prep.executeUpdate();
 			prep.close();
+			BaseDAO.playersDB.commit();
 		}
 		catch(SQLException e)
 		{

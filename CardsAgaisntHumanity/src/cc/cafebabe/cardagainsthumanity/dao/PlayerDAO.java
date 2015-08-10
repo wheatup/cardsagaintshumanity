@@ -30,6 +30,7 @@ public class PlayerDAO
 		    if(BaseDAO.resetMode || !exist){
 		    	stat.executeUpdate("drop table if exists player;");
 			    stat.executeUpdate("create table player (pid INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(20) NOT NULL, password VARCHAR(20) NOT NULL, regtime DATETIME NOT NULL, state NUMBER(1) NOT NULL);");
+			    BaseDAO.playersDB.commit();
 		    }
 		}
 		catch(SQLException e)
@@ -52,6 +53,7 @@ public class PlayerDAO
 		    GameDataService.createGameData(pid);
 		    player = PlayerService.getPlayerByName(username);
 		    prep.close();
+		    BaseDAO.playersDB.commit();
 		}
 		catch(SQLException e)
 		{
@@ -65,7 +67,7 @@ public class PlayerDAO
 		PreparedStatement prep;
 		try
 		{
-			prep = BaseDAO.playersDB.prepareStatement("select * from player where name = ?;");
+			prep = BaseDAO.playersDB.prepareStatement("select pid from player where name = ?;");
 			prep.setString(1, username.trim());
 			ResultSet rs = prep.executeQuery();
 		    if(rs.next()){
@@ -107,7 +109,7 @@ public class PlayerDAO
 		PreparedStatement prep;
 		try
 		{
-			prep = BaseDAO.playersDB.prepareStatement("select * from player where pid = ?;");
+			prep = BaseDAO.playersDB.prepareStatement("select name, password, regtime, state from player where pid = ?;");
 			prep.setLong(1, pid);
 		    ResultSet rs = prep.executeQuery();
 		    if(rs.next()){
@@ -159,13 +161,15 @@ public class PlayerDAO
 		PreparedStatement prep;
 		try
 		{
-			prep = BaseDAO.playersDB.prepareStatement("update player set name = ?, password = ?, state = ? where pid = ?;");
+			prep = BaseDAO.playersDB.prepareStatement(
+					"update player set name = ?, password = ?, state = ? where pid = ?;");
 			prep.setString(1, player.getName());
 		    prep.setString(2, player.getPassword());
 		    prep.setInt(3, player.getState());
 		    prep.setLong(4, player.getPid());
 			prep.executeUpdate();
 			prep.close();
+			BaseDAO.playersDB.commit();
 		}
 		catch(SQLException e)
 		{
