@@ -27,4 +27,15 @@ public class BaseDAO {
 				e.printStackTrace();
 			}
 	}
+	
+	public static void commit(){
+		if(playersDB != null){
+			try {
+				playersDB.commit();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
 }
