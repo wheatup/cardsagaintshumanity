@@ -20,6 +20,10 @@ public class Json2Map
 {
 	public static String toJSONString(Map<String, Object> map)
 	{
+		if(map == null){
+			return "";
+		}
+		
 		JsonObjectBuilder job = Json.createObjectBuilder();
 		for(String key : map.keySet())
 		{

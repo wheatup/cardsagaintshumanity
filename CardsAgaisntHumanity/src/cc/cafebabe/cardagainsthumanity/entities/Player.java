@@ -1,20 +1,23 @@
 package cc.cafebabe.cardagainsthumanity.entities;
 
-import java.util.Date;
+import java.sql.Date;
+
+import cc.cafebabe.cardagainsthumanity.service.GameDataService;
+import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
 public class Player
 {
 	private long pid;
-	private String username;
+	private String name;
 	private String password;
 	private Date regtime;
 	private int state;
 	private GameData gameData;
 	
-	public Player(long uid, String username, String password, Date regDate, int state, GameData gameData)
+	public Player(long uid, String name, String password, Date regDate, int state, GameData gameData)
 	{
 		this.pid = uid;
-		this.username = username;
+		this.name = name;
 		this.password = password;
 		this.regtime = regDate;
 		this.state = state;
@@ -37,13 +40,13 @@ public class Player
 	{
 		this.pid = uid;
 	}
-	public String getUsername()
+	public String getName()
 	{
-		return username;
+		return name;
 	}
-	public void setUsername(String username)
+	public void setName(String name)
 	{
-		this.username = username;
+		this.name = name;
 	}
 	public String getPassword()
 	{
@@ -70,4 +73,11 @@ public class Player
 		this.state = state;
 	}
 	
+	
+	public void saveGameData(){
+		GameDataService.saveGameData(this.gameData);
+	}
+	public void savePlayerData(){
+		PlayerService.savePlayer(this);
+	}
 }

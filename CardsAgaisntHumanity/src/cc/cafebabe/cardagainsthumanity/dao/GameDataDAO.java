@@ -1,44 +1,34 @@
 package cc.cafebabe.cardagainsthumanity.dao;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 
 import cc.cafebabe.cardagainsthumanity.entities.GameData;
-import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public class GameDataDAO
 {
-	private static Connection conn;
 	public static void init(){
-		//判断PlayerData表是否存在
 		try
 		{
-			Class.forName("org.sqlite.JDBC");
-		
-			conn = DriverManager.getConnection("jdbc:sqlite:players.db");
-			
 			//判断Player表是否存在
-		    Statement stat = conn.createStatement();
+		    Statement stat = BaseDAO.playersDB.createStatement();
 		    ResultSet rs = stat.executeQuery("select count(*) from sqlite_master where type='table' and name='gamedata';");
-		    rs = stat.executeQuery("select count(*) from sqlite_master where type='table' and name='gamedata';");
 		    boolean exist = false;
 		    if(rs.next()){
 		    	exist = rs.getInt(1) > 0;
 		    }
 		    
 		    //如果不存在则创建表
-		    if(PlayerDAO.resetMode || !exist){
+		    if(BaseDAO.resetMode || !exist){
 		    	stat.executeUpdate("drop table if exists gamedata;");
-			    stat.executeUpdate("create table gamedata (pid INTEGER PRIMARY KEY, credit INTEGER, fish INTEGER, exp INTEGER, ext VARCHAR(500), FOREIGN KEY (pid) REFERENCE player(pid) ON DELETE CASCADE ON UPDATE CASCADE;");
+			    stat.executeUpdate("create table gamedata (pid INTEGER PRIMARY KEY, credit INTEGER, fish INTEGER, exp INTEGER, ext VARCHAR(500), FOREIGN KEY (pid) REFERENCES player(pid) ON DELETE CASCADE ON UPDATE CASCADE);");
 		    }
-		}
-		catch(ClassNotFoundException e)
-		{
-			e.printStackTrace();
+		    rs.close();
+		    stat.close();
 		}
 		catch(SQLException e)
 		{
@@ -46,18 +36,59 @@ public class GameDataDAO
 		}
 	}
 	
+	/**
+	 * 创建玩家游戏数据，并返回其实体对象
+	 * @param pid
+	 * @return
+	 */
 	public static GameData createGameData(long pid){
-		GameData data = null;
 	    PreparedStatement prep;
 		try
 		{
-			prep = conn.prepareStatement("insert into gamedata values (?, ?, ?, ?, ?);");
+			prep = BaseDAO.playersDB.prepareStatement("insert into gamedata values (?, ?, ?, ?, ?);");
 			prep.setLong(1, pid);
 		    prep.setInt(2, 0);
 		    prep.setInt(3, 0);
 		    prep.setInt(4, 0);
 		    prep.setString(5, "");
-		    prep.execute();
+		    prep.executeUpdate();
+		    prep.close();
+		}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+		}
+		return getGameData(pid);
+	}
+	
+	/**
+	 * 通过pid获取游戏数据对象
+	 * @param pid
+	 * @return 游戏数据对象
+	 */
+	public static GameData getGameData(long pid){
+		GameData data = null;
+	    PreparedStatement prep;
+		try
+		{
+			prep = BaseDAO.playersDB.prepareStatement("select * from gamedata where pid = ?;");
+			prep.setLong(1, pid);
+			ResultSet rs = prep.executeQuery();
+			if(rs.next()){
+				int credit = rs.getInt("credit");
+				int fish = rs.getInt("fish");
+				int exp = rs.getInt("exp");
+				data = new GameData(pid, credit, fish, exp);
+				String ext = rs.getString("ext");
+				if(ext != null && ext.length() > 0){
+					Map<String, Object> map = Json2Map.readFromJson(ext);
+					if(map.size() > 0){
+						data.setData(map);
+					}
+				}
+			}
+			rs.close();
+			prep.close();
 		}
 		catch(SQLException e)
 		{
@@ -65,23 +96,28 @@ public class GameDataDAO
 		}
 	    return data;
 	}
-	
-	public static GameData getGameData(long pid){
-		GameData data = null;
-	    PreparedStatement prep;
+
+	/**
+	 * 保存游戏数据对象到数据库
+	 * @param 游戏数据
+	 */
+	public static void saveGameData(GameData gameData){
+		PreparedStatement prep;
 		try
 		{
-			prep = conn.prepareStatement("select * from gamedata where pid = ?;");
-			prep.setLong(1, pid);
-			ResultSet rs = prep.executeQuery();
-			if(rs.next()){
-				data = new GameData(pid);
-			}
+			prep = BaseDAO.playersDB.prepareStatement("update gamedata set credit = ?, fish = ?, exp = ?, ext = ? where pid = ?;");
+			
+		    prep.setInt(1, gameData.getCredit());
+		    prep.setInt(2, gameData.getFish());
+		    prep.setInt(3, gameData.getExp());
+		    prep.setString(4, Json2Map.toJSONString(gameData.getData()));
+		    prep.setLong(5, gameData.getPid());
+		    prep.executeUpdate();
+			prep.close();
 		}
 		catch(SQLException e)
 		{
 			e.printStackTrace();
 		}
-	    return data;
 	}
 }

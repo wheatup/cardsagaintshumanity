@@ -7,14 +7,14 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
-import cc.cafebabe.cardagainsthumanity.dao.ServerIniter;
+import cc.cafebabe.cardagainsthumanity.dao.DAOIniter;
 
 @ServerEndpoint("/server")
 public class Server
 {
 	static
 	{
-		ServerIniter.init();
+		DAOIniter.init();
 	}
 	
 	@OnOpen
