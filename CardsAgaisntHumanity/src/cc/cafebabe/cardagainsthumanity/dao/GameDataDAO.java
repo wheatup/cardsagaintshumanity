@@ -25,7 +25,8 @@ public class GameDataDAO
 		    //如果不存在则创建表
 		    if(BaseDAO.resetMode || !exist){
 		    	stat.executeUpdate("drop table if exists gamedata;");
-			    stat.executeUpdate("create table gamedata (pid INTEGER PRIMARY KEY, credit INTEGER, fish INTEGER, exp INTEGER, ext VARCHAR(500), FOREIGN KEY (pid) REFERENCES player(pid) ON DELETE CASCADE ON UPDATE CASCADE);");
+			    stat.executeUpdate("create table gamedata (pid INTEGER PRIMARY KEY, credit INTEGER, fish INTEGER, exp INTEGER, ext NVARCHAR(500), FOREIGN KEY (pid) REFERENCES player(pid) ON DELETE CASCADE);");
+			    stat.executeUpdate("CREATE INDEX idx_gdpid ON gamedata(pid);");
 			    //BaseDAO.playersDB.commit();
 		    }
 		    rs.close();

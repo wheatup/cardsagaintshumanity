@@ -1,22 +1,55 @@
 package cc.cafebabe.cardagainsthumanity.test;
 
-import java.sql.SQLException;
+import java.util.Set;
 
 import cc.cafebabe.cardagainsthumanity.dao.BaseDAO;
 import cc.cafebabe.cardagainsthumanity.dao.DAOIniter;
-import cc.cafebabe.cardagainsthumanity.entities.Player;
-import cc.cafebabe.cardagainsthumanity.service.GameDataService;
+import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
+import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
+import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
 public class Main
 {
 	public static void main(String[] args)
 	{
+		
 		DAOIniter.init();
 		long startTime = System.currentTimeMillis();
-		for(int i = 0; i < 100; i++){
-			PlayerService.logOrRegPlayer("user" + i, "123456");
+		
+		PlayerService.logOrRegPlayer("admin", "123456");
+		
+		CardsService.addCardPack("»ù±¾¿¨ÅÆ°ü", 0);
+		CardsService.addCardPack("»ù±¾¿¨ÅÆ°üEX", 5);
+		CardsService.addBlackCard(1, "²âÊÔºÚ¿¨%b1¡£", "»ù±¾¿¨ÅÆ°ü");
+		CardsService.addBlackCard(1, "²âÊÔºÚ¿¨%b2¡£", "»ù±¾¿¨ÅÆ°ü");
+		CardsService.addBlackCard(1, "²âÊÔºÚ¿¨%b3¡£", "»ù±¾¿¨ÅÆ°ü");
+		CardsService.addBlackCard(1, "²âÊÔºÚ¿¨%b4¡£", "»ù±¾¿¨ÅÆ°üEX");
+		CardsService.addBlackCard(1, "²âÊÔºÚ¿¨%b5¡£", "»ù±¾¿¨ÅÆ°üEX");
+		CardsService.addWhiteCard(1, "²âÊÔ°×¿¨1", "»ù±¾¿¨ÅÆ°ü");
+		CardsService.addWhiteCard(1, "²âÊÔ°×¿¨2", "»ù±¾¿¨ÅÆ°ü");
+		CardsService.addWhiteCard(1, "²âÊÔ°×¿¨3", "»ù±¾¿¨ÅÆ°üEX");
+		CardsService.addWhiteCard(1, "²âÊÔ°×¿¨4", "»ù±¾¿¨ÅÆ°üEX");
+		CardsService.addWhiteCard(1, "²âÊÔ°×¿¨5", "»ù±¾¿¨ÅÆ°ü");
+		
+		CardsService.approveAllCards();
+		
+		CardsService.loadAllCards();
+		
+		Set<BlackCard> blackCards = CardsService.getBlackCardsByPacks(
+				new String[]{"»ù±¾¿¨ÅÆ°ü", "»ù±¾¿¨ÅÆ°üEX"});
+		Set<WhiteCard> whiteCards = CardsService.getWhiteCardsByPacks(
+				new String[]{"»ù±¾¿¨ÅÆ°ü"});
+		
+		for(BlackCard card : blackCards){
+			System.out.println(card);
 		}
+		
+		for(WhiteCard card : whiteCards){
+			System.out.println(card);
+		}
+		
+		BaseDAO.commit();
 		System.out.println("spent time: " + (System.currentTimeMillis() - startTime));
 	}
 	

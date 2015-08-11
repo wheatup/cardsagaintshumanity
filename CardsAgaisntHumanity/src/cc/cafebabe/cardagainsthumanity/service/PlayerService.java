@@ -39,4 +39,14 @@ public class PlayerService
 		if(player == null) return;
 		PlayerDAO.savePlayer(player);
 	}
+	
+	public static void updatePlayerLogTime(Player player){
+		if(player == null) return;
+		PlayerDAO.updateLogTime(player);
+	}
+	
+	public static void deletePlayer(Player player){
+		if(player == null) return;
+		PlayerDAO.deletePlayer(player.getPid());
+	}
 }

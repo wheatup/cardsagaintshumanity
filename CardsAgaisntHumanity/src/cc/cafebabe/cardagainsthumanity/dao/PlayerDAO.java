@@ -29,7 +29,8 @@ public class PlayerDAO
 		    //如果不存在则创建表
 		    if(BaseDAO.resetMode || !exist){
 		    	stat.executeUpdate("drop table if exists player;");
-			    stat.executeUpdate("create table player (pid INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(20) NOT NULL, password VARCHAR(20) NOT NULL, regtime DATETIME NOT NULL, state NUMBER(1) NOT NULL);");
+			    stat.executeUpdate("create table player (pid INTEGER PRIMARY KEY AUTOINCREMENT, name NVARCHAR(20) NOT NULL, password VARCHAR(20) NOT NULL, regtime DATETIME NOT NULL, state NUMBER(1) NOT NULL, logtime DATETIME);");
+			    stat.executeUpdate("CREATE INDEX idx_pid ON player(pid);");
 			    //BaseDAO.playersDB.commit();
 		    }
 		}
@@ -44,7 +45,7 @@ public class PlayerDAO
 	    PreparedStatement prep;
 		try
 		{
-			prep = BaseDAO.playersDB.prepareStatement("insert into player values (null, ?, ?, datetime('now'), ?);");
+			prep = BaseDAO.playersDB.prepareStatement("insert into player values (null, ?, ?, datetime('now'), ?, datetime('now'));");
 			prep.setString(1, username.trim());
 		    prep.setString(2, password);
 		    prep.setInt(3, state);
@@ -167,6 +168,39 @@ public class PlayerDAO
 		    prep.setString(2, player.getPassword());
 		    prep.setInt(3, player.getState());
 		    prep.setLong(4, player.getPid());
+			prep.executeUpdate();
+			prep.close();
+			//BaseDAO.playersDB.commit();
+		}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void updateLogTime(Player player){
+		PreparedStatement prep;
+		try
+		{
+			prep = BaseDAO.playersDB.prepareStatement(
+					"update player set logtime = datetime('now') where pid = ?;");
+		    prep.setLong(1, player.getPid());
+			prep.executeUpdate();
+			prep.close();
+			//BaseDAO.playersDB.commit();
+		}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void deletePlayer(long pid){
+		PreparedStatement prep;
+		try
+		{
+			prep = BaseDAO.playersDB.prepareStatement("delete from player where pid = ?;");
+		    prep.setLong(1, pid);
 			prep.executeUpdate();
 			prep.close();
 			//BaseDAO.playersDB.commit();
