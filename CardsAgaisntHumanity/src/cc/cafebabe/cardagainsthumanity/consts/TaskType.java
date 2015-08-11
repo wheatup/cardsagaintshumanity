@@ -1,4 +1,4 @@
-package cc.cafebabe.cardagainsthumanity.util;
+package cc.cafebabe.cardagainsthumanity.consts;
 
 public enum TaskType {
 	MESSAGE,

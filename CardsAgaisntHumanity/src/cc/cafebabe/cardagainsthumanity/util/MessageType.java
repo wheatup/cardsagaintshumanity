@@ -7,8 +7,5 @@ public enum MessageType
 	TEXT,
 	ROOMINFO,
 	GAMEINFO,
-	ACTION,
-	ACTIONEX,
-	JOIN_GAME,
-	LEAVE_GAME
+	SERVERINFO
 }

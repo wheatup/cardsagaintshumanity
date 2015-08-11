@@ -1,0 +1,8 @@
+﻿body {padding:0; margin:0; font-family:"微软雅黑";}
+#wrapper {width:100%; background-color:#2f3444; color:#eee3e3;}
+.page {display:none; width:1280px; height:768px; margin:0px auto;}
+#loginPage .title {width:100%; padding:50px; text-align:center;}
+#loginPage .title .titleText{font-size:40px;}
+#loginPage .title .titleSubtext{font-size:25px;}
+#loginPage .title .info{margin:0px auto; width:50%; margin-top:20px; font-size:20px; text-align:left;}
+#loginPage .loginArea {width:100%;}

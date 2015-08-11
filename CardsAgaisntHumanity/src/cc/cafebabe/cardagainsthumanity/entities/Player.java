@@ -1,6 +1,9 @@
 package cc.cafebabe.cardagainsthumanity.entities;
 
+import java.io.IOException;
 import java.sql.Date;
+
+import javax.websocket.Session;
 
 import cc.cafebabe.cardagainsthumanity.service.GameDataService;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
@@ -13,6 +16,7 @@ public class Player
 	private Date regtime;
 	private int state;
 	private GameData gameData;
+	private Session session;
 	
 	public Player(long uid, String name, String password, Date regDate, int state, GameData gameData)
 	{
@@ -24,6 +28,14 @@ public class Player
 		this.gameData = gameData;
 	}
 	
+	public Session getSession() {
+		return session;
+	}
+
+	public void setSession(Session session) {
+		this.session = session;
+	}
+
 	public GameData getGameData()
 	{
 		return gameData;
@@ -73,6 +85,15 @@ public class Player
 		this.state = state;
 	}
 	
+	public void sendMessage(String message){
+		if(session != null && session.isOpen()){
+			try {
+				session.getBasicRemote().sendText(message);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	
 	public void saveGameData(){
 		GameDataService.saveGameData(this.gameData);
