@@ -146,10 +146,9 @@ class Server {
     onMessage(evt): void {
         if (GameSettings.debugMode)
             console.log('接收到消息: ' + evt.data);
+
+		Main.unfreezeMe();
         var data = MessageAnalysis.parseMessage(evt.data);
-
-
-
         switch (data.t) {
             case "flag":
                 MyEvent.call(data.k);
@@ -174,10 +173,20 @@ class Server {
 	/**
 		* 发送信息至服务器事件
 		*/
-    send(data): void {
-        if (GameSettings.debugMode)
+    send(data, isVital): void {
+		if (isVital && Main.isFrozen()) {
+			console.log('网络被堵塞，请稍后再试！');
+			MyEvent.call("msg", "网络被堵塞，请稍后再试！");
+			return;
+		}
+
+		if (GameSettings.debugMode)
             console.log('发送消息: ' + data);
+
         this.socket.send(data);
+
+		if (isVital)
+			Main.freezeMe();
     }
 }
 
@@ -202,6 +211,7 @@ class MessageAnalysis {
 
 enum State {
     CONNECTING,
+	CONNECTED,
     LOBBY,
     PLAYING
 }
@@ -210,16 +220,32 @@ class Signal {
     public static ServerInfo: string = "serverinfo";
 	public static OnClickLogin: string = "OnClickLogin";
 	public static LoginErr: string = "logerr";
+	public static MyInfo: string = "myinfo";
+	public static LobbyInfo: string = "lobbyinfo";
 }
 
 class Main {
     public static server: Server;
     public static state: State;
     private loginState: LoginState;
+	private lobbyState: LobbyState;
 
+	private static freeze: boolean = false;
+	public static isFrozen(): boolean {
+		return Main.freeze;
+	}
+
+	public static freezeMe(): void {
+		Main.freeze = true;
+	}
+
+	public static unfreezeMe(): void {
+		Main.freeze = false;
+	}
 
     public start(): void {
         this.loginState = new LoginState();
+		this.lobbyState = new LobbyState();
         this.loginState.start();
     }
 }
@@ -243,11 +269,11 @@ class LoginState {
 
     public showLoginPage(): void {
         jQuery("#loginPage").show();
-		LoginState.setLoginTop("正在连接服务器...");
+		LoginState.setLoginTip("正在连接服务器...");
 		this.activateLoginArea(false);
     }
 
-	public static setLoginTop(tip: string): void {
+	public static setLoginTip(tip: string): void {
 		jQuery("#logintip").html(tip);
 	}
 
@@ -262,9 +288,13 @@ class LoginState {
 	}
 
     public onCanLogin(data: any, thisObject: LoginState): void {
+		Main.state = State.CONNECTED;
+		var par = parseInt(data.players) / parseInt(data.max) * 100;
+
+		jQuery("#onlineBar").css("width", par + "%");
 		jQuery("#serverinfo").html(data.players + "/" + data.max);
         if (data.players < data.max) {
-			LoginState.setLoginTop("请登录，如果该用户名没有注册过，则将自动为您注册。");
+			LoginState.setLoginTip("请登录，如果该用户名没有注册过，则将自动为您注册。");
 			thisObject.activateLoginArea(true);
 			thisObject.loginable = true;
 		}
@@ -282,28 +312,29 @@ class LoginState {
 		var password: string = $password.value.trim();
 
 		if (username.length < 2) {
-			LoginState.setLoginTop('您的用户名太短！请至少超过<s style="color:#999;">6cm</s>2个字符！');
+			LoginState.setLoginTip('您的用户名太短！请至少超过<s style="color:#999;">6cm</s>2个字符！');
 			return;
 		} else if (username.length > 16) {
-			LoginState.setLoginTop('您的用户名太长！');
+			LoginState.setLoginTip('您的用户名太长！');
 			return;
 		} else if (password.length < 4) {
-			LoginState.setLoginTop('您的密码太短！请至少超过4个字符！');
+			LoginState.setLoginTip('您的密码太短！请至少超过4个字符！');
 			return;
 		} else if (password.length > 20) {
-			LoginState.setLoginTop('您的密码太长！');
+			LoginState.setLoginTip('您的密码太长！');
 			return;
 		} else if (!LoginState.isUsernameLegal(username)) {
-			LoginState.setLoginTop('您的用户名不合法！');
+			LoginState.setLoginTip('您的用户名不合法！');
 			return;
 		}
 
 		thisObject.sendLogin(username, password );
 	}
 
-	public sendLogin(username: string, password:string): void {
-		LoginState.setLoginTop('正在登录...');
-		Server.instance.send(PackageBuilder.buildLoginPackage(username, password));
+	public sendLogin(username: string, password: string): void {
+		if (Main.state != State.CONNECTED) return;
+		LoginState.setLoginTip('正在登录...');
+		Server.instance.send(PackageBuilder.buildLoginPackage(username, password), true);
 	}
 
 	public static isUsernameLegal(name: string): boolean {
@@ -312,10 +343,29 @@ class LoginState {
 
 	private onLoginErr(data: any, _this: LoginState): void{
 		if (data == 101) {
-			LoginState.setLoginTop('用户名密码验证不通过，请检查输入。');
+			LoginState.setLoginTip('用户名密码验证不通过，请检查输入。');
 		} else if (data == 102) {
-			LoginState.setLoginTop('密码错误，该用户已被注册！');
+			LoginState.setLoginTip('密码错误，该用户已被注册！');
 		}
+	}
+}
+
+class LobbyState {
+	public constructor() {
+		this.bindEvents();
+	}
+
+	private bindEvents(): void {
+		MyEvent.bind(Signal.MyInfo, this.OnGetMyInfo, this);
+		MyEvent.bind(Signal.LobbyInfo, this.OnGetLobbyInfo, this);
+	}
+
+	private OnGetMyInfo(data: any, _this: LobbyState): void {
+		
+	}
+
+	private OnGetLobbyInfo(data: any, _this: LobbyState): void {
+		Main.state = State.LOBBY;
 	}
 }
 

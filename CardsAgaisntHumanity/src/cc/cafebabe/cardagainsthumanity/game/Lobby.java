@@ -4,13 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
-import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public class Lobby extends PlayerContainer{
 	public static final int MAX_ROOM_COUNT = 100;
 	public boolean dirtyRoom = true;
-	private HashMapArray bufferedRoomMap;
 	
 	private Map<Integer, Room> rooms;
 	public Lobby(){
@@ -33,6 +31,7 @@ public class Lobby extends PlayerContainer{
 	public void sendPlayerInLobby(Player player){
 		addPlayer(player);
 		player.sendMessage(Json2Map.buildLobbyInfo(this));
+		player.setRoomNumber(0);
 	}
 	
 	public void removePlayerFromLobby(Player player){

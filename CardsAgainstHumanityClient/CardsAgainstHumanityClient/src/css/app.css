@@ -14,3 +14,5 @@
 #loginPage .loginArea #serverinfo {text-align:center;}
 #loginPage .loginArea table {text-align:right; margin:20px auto;}
 #loginPage .loginArea table #submit {height:30px;}
+#loginPage .loginArea #onlineBar {display:block; float:left; background-color:#234; width:0%; height:24px; text-align:center;}
+#loginPage .loginArea #serverinfo {display:block; float:left; line-height:20px; border:solid 2px #9ab; position:absolute; z-index:1; width:150px; height:20px; text-align:center;}
