@@ -16,7 +16,10 @@ import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 import javax.json.JsonWriter;
 
+import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.game.GameWorld;
+import cc.cafebabe.cardagainsthumanity.game.Lobby;
+import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
 import cc.cafebabe.cardagainsthumanity.server.Server;
 
 public class Json2Map
@@ -155,6 +158,12 @@ public class Json2Map
 		case SERVERINFO:
 			map.put("t", "serverinfo");
 			break;
+		case LOBBYINFO:
+			map.put("t", "lobbyinfo");
+			break;
+		case MYINFO:
+			map.put("t", "myinfo");
+			break;
 		default:
 			map.put("t", "d");
 			break;
@@ -166,6 +175,20 @@ public class Json2Map
 		Map<String, Object> map = BuildMapByType(MessageType.SERVERINFO);
 		map.put("players", Server.gameWorld.getPlayerCount());
 		map.put("max", GameWorld.MAX_PLAYER);
+		return map;
+	}
+	
+	public static Map<String, Object> buildMyInfo(Player player){
+		Map<String, Object> map = BuildMapByType(MessageType.MYINFO);
+		HashMapArray arr = new HashMapArray();
+		arr.addMap(player.buildPlayerInfo());
+		map.put("info", arr);
+		return map;
+	}
+	
+	public static Map<String, Object> buildLobbyInfo(Lobby lobby){
+		Map<String, Object> map = BuildMapByType(MessageType.LOBBYINFO);
+		map.put("players", lobby.buildPlayersInfo());
 		return map;
 	}
 }

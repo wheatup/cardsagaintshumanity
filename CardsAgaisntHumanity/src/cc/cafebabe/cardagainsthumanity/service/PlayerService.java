@@ -14,12 +14,19 @@ public class PlayerService
 			Player player = PlayerDAO.getPlayer(name);
 			if(player == null) return null;
 			if(player.getPassword().equals(password)){
+				System.out.println("登录用户:" + name);
+				player.setFirstLogin(false);
+				player.setLastMessageTime(System.currentTimeMillis());
 				return player;
 			}else{
 				return null;
 			}
 		}else{
-			return PlayerDAO.createPlayer(name, password, 0);
+			System.out.println("注册用户:" + name);
+			Player player = PlayerDAO.createPlayer(name, password, 0);
+			player.setFirstLogin(true);
+			player.setLastMessageTime(System.currentTimeMillis());
+			return player;
 		}
 	}
 	

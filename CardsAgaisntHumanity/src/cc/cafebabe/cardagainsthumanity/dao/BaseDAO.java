@@ -11,8 +11,8 @@ public class BaseDAO {
 	public static void init(){
 		try {
 			Class.forName("org.sqlite.JDBC");
-			playersDB = DriverManager.getConnection("jdbc:sqlite:players.db");
-			cardsDB = DriverManager.getConnection("jdbc:sqlite:cards.db");
+			playersDB = DriverManager.getConnection("jdbc:sqlite:player.db");
+			cardsDB = DriverManager.getConnection("jdbc:sqlite:card.db");
 			BaseDAO.playersDB.setAutoCommit(false);
 			BaseDAO.cardsDB.setAutoCommit(false);
 		} catch (SQLException e) {
@@ -45,7 +45,6 @@ public class BaseDAO {
 			try {
 				playersDB.commit();
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -54,7 +53,6 @@ public class BaseDAO {
 			try {
 				cardsDB.commit();
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

@@ -49,6 +49,6 @@ public class Server
 	@OnMessage
 	public void onMessage(String message, Session session)
 	{
-		handler.addTask(new Task(session, TaskType.CLOSE, message));
+		handler.addTask(new Task(session, TaskType.MESSAGE, message));
 	}
 }

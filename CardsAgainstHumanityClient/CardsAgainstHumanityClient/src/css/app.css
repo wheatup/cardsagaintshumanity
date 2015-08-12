@@ -1,8 +1,16 @@
-﻿body {padding:0; margin:0; font-family:"微软雅黑";}
-#wrapper {width:100%; background-color:#2f3444; color:#eee3e3;}
-.page {display:none; width:1280px; height:768px; margin:0px auto;}
-#loginPage .title {width:100%; padding:50px; text-align:center;}
+﻿body {padding:0; margin:0; font-family:"微软雅黑"; background-color:#2f3444;}
+.button {position:relative; text-align:center; height:30px; line-height:30px; background-color:#456; color:#abc; border:solid 2px #789;}
+.button:hover {position:relative; cursor:pointer; background-color:#abc; color:#456; border:solid 2px #789;}
+#wrapper {width:100%; color:#eee3e3;}
+.page {display:none; width:1024px; height:640px; margin:0px auto; background-color:#5c6670; border:solid 2px #3b424d;}
+#loginPage .title {padding:50px; text-align:center;}
 #loginPage .title .titleText{font-size:40px;}
 #loginPage .title .titleSubtext{font-size:25px;}
-#loginPage .title .info{margin:0px auto; width:50%; margin-top:20px; font-size:20px; text-align:left;}
-#loginPage .loginArea {width:100%;}
+#loginPage .title .info {margin-top:50px;}
+#loginPage .title .info .infocard{vertical-align:middle; margin:10px; text-align:left; padding:10px; width:200px; height:120px; background-color:#333; color:#fff; display:inline-block; box-shadow:#3b424d 3px 3px; border:solid 2px #777;}
+#loginPage .title .info .infocardwhite{vertical-align:middle; margin:10px; text-align:left; padding:10px; width:200px; height:120px; background-color:#fff; color:#333; display:inline-block; box-shadow:#3b424d 3px 3px;  border:solid 2px #333;}
+#loginPage .loginArea {width:100%; text-align:center;}
+#loginPage .loginArea #logintip {}
+#loginPage .loginArea #serverinfo {text-align:center;}
+#loginPage .loginArea table {text-align:right; margin:20px auto;}
+#loginPage .loginArea table #submit {height:30px;}

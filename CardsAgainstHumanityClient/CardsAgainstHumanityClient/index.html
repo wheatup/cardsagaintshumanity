@@ -1,27 +1,46 @@
 ﻿<!DOCTYPE html>
+<html>
 <head>
     <meta charset="utf-8" />
     <title>反人类卡牌游戏</title>
     <link rel="stylesheet" href="src/css/app.css" type="text/css" />
     <script src="src/script/lib/jquery-2.1.1.min.js"></script>
+    <script src="src/script/lib/touch.js"></script>
     <script src="src/script/app.js"></script>
 </head>
-<body>
+<body oncontextmenu='return false' ondragstart='return false' onselectstart='return false' onselect='return false'>
     <div id="wrapper">
         <div class="page" id="loginPage">
             <div class="title">
                 <div class="titleText">反人类卡牌游戏</div>
                 <div class="titleSubtext">CardsAgainstHumanity</div>
+                <div class="titleSubtext">- 重制版 -</div>
                 <div class="info">
-                    游戏分为黑卡与白卡，黑卡包含一段问题，或是缺少词语的句子；白卡包含一条短语。<br>
-                    每轮游戏依次选择一名玩家作为裁判，玩家手中有8张白卡，用于回答黑卡所提出的问题，所有玩家选择完卡牌之后亮出自己的白卡。<br>
-                    裁判选择一张最满(wu)意(jie)的(cao)答案，并为该玩家获得一分。
+                    <div class="infocardwhite">游戏分为黑卡与白卡，黑卡包含一段问题，或是缺少词语的句子；白卡包含一条短语。</div>
+                    <div class="infocard">每轮游戏依次选择一名玩家作为裁判，玩家手中有8张白卡，用于回答黑卡所提出的问题，所有玩家选择完卡牌之后亮出自己的白卡。</div>
+                    <div class="infocardwhite">裁判选择一张最满(wu)意(jie)的(cao)答案，并为该玩家获得一分。</div>
                 </div>
             </div>
             <div class="loginArea">
-                <label>用户名:</label><input id="username" type="text" maxlength="16" /><br>
-                <label>密码:</label><input id="password" type="password" maxlength="16" /><br>
-                <input id="submit" type="button" value="注册或登录" />
+                <div id="logintip"></div>
+                
+                <table>
+                    <tr>
+                        <td><label>玩家在线:</label></td>
+                        <td style="text-align:center;"><label id="serverinfo">?/?</label></td>
+                    </tr>
+                    <tr>
+                        <td><label>用户名:</label></td>
+                        <td><input id="username" type="text" maxlength="16" /></td>
+                    </tr>
+                    <tr>
+                        <td><label>密码:</label></td>
+                        <td><input id="password" type="password" maxlength="16" /></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><div class="button" id="submit">登录/注册</div></td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>

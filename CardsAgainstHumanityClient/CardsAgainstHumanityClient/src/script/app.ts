@@ -94,6 +94,22 @@ class EventObject {
     }
 }
 
+class Util {
+	public static replaceAll(org:string, findStr:string, repStr:string) {
+		var str: string = org;
+		var index: number = 0;
+		while (index <= str.length) {
+			index = str.indexOf(findStr, index);
+			if (index == -1) {
+				break;
+			}
+			str = str.replace(findStr, repStr);
+			index += repStr.length;
+		}
+		return str;
+	}
+}
+
 class Server {
     public static instance: Server;
     public socket: WebSocket;
@@ -165,6 +181,19 @@ class Server {
     }
 }
 
+class PackageBuilder {
+	public static buildLoginPackage(username: string, password: string): string {
+		username = username.replace(/"/g, "\\\"");
+		username = username.replace(/'/g, "\\'");
+		username = username.replace(/\\/g, "\\\\");
+		password = password.replace(/"/g, "\\\"");
+		password = password.replace(/'/g, "\\'");
+		password = password.replace(/\\/g, "\\\\");
+		var pack = '{"t":"login", "username":"' + username + '", "password":"' + password + '"}';
+		return pack;
+	}
+}
+
 class MessageAnalysis {
     public static parseMessage(data): any {
         return JSON.parse(data);
@@ -179,13 +208,15 @@ enum State {
 
 class Signal {
     public static ServerInfo: string = "serverinfo";
+	public static OnClickLogin: string = "OnClickLogin";
+	public static LoginErr: string = "logerr";
 }
 
 class Main {
     public static server: Server;
     public static state: State;
-
     private loginState: LoginState;
+
 
     public start(): void {
         this.loginState = new LoginState();
@@ -195,7 +226,7 @@ class Main {
 
 class LoginState {
     private ass: string = "ass";
-
+	private loginable: boolean = false;
     public start(): void {
         this.bindEvents();
         Main.server = new Server();
@@ -205,16 +236,89 @@ class LoginState {
 
     public bindEvents(): void {
         MyEvent.bind(Signal.ServerInfo, this.onCanLogin, this);
+		MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
+		MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
+		jQuery("#submit").tapOrClick(this.onClickLogin);
     }
 
     public showLoginPage(): void {
         jQuery("#loginPage").show();
+		LoginState.setLoginTop("正在连接服务器...");
+		this.activateLoginArea(false);
     }
 
+	public static setLoginTop(tip: string): void {
+		jQuery("#logintip").html(tip);
+	}
+
+	public activateLoginArea(activate: boolean): void {
+		if (activate) {
+			jQuery("#username").attr("disabled", false);
+			jQuery("#password").attr("disabled", false);
+		} else {
+			jQuery("#username").attr("disabled", true);
+			jQuery("#password").attr("disabled", true);
+		}
+	}
+
     public onCanLogin(data: any, thisObject: LoginState): void {
-        
+		jQuery("#serverinfo").html(data.players + "/" + data.max);
+        if (data.players < data.max) {
+			LoginState.setLoginTop("请登录，如果该用户名没有注册过，则将自动为您注册。");
+			thisObject.activateLoginArea(true);
+			thisObject.loginable = true;
+		}
     }
+
+	public onClickLogin(): void {
+		MyEvent.call(Signal.OnClickLogin);
+	}
+
+	public onLogin(data: any, thisObject: LoginState): void {
+		if (!thisObject.loginable) return;
+		var $username: any = document.getElementById("username");
+		var $password: any = document.getElementById("password");
+		var username: string = $username.value.trim();
+		var password: string = $password.value.trim();
+
+		if (username.length < 2) {
+			LoginState.setLoginTop('您的用户名太短！请至少超过<s style="color:#999;">6cm</s>2个字符！');
+			return;
+		} else if (username.length > 16) {
+			LoginState.setLoginTop('您的用户名太长！');
+			return;
+		} else if (password.length < 4) {
+			LoginState.setLoginTop('您的密码太短！请至少超过4个字符！');
+			return;
+		} else if (password.length > 20) {
+			LoginState.setLoginTop('您的密码太长！');
+			return;
+		} else if (!LoginState.isUsernameLegal(username)) {
+			LoginState.setLoginTop('您的用户名不合法！');
+			return;
+		}
+
+		thisObject.sendLogin(username, password );
+	}
+
+	public sendLogin(username: string, password:string): void {
+		LoginState.setLoginTop('正在登录...');
+		Server.instance.send(PackageBuilder.buildLoginPackage(username, password));
+	}
+
+	public static isUsernameLegal(name: string): boolean {
+		return true;
+	}
+
+	private onLoginErr(data: any, _this: LoginState): void{
+		if (data == 101) {
+			LoginState.setLoginTop('用户名密码验证不通过，请检查输入。');
+		} else if (data == 102) {
+			LoginState.setLoginTop('密码错误，该用户已被注册！');
+		}
+	}
 }
+
 window.onload = () => {
     new Main().start();
 };

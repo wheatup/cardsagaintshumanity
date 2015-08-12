@@ -4,16 +4,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.websocket.Session;
+
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public abstract class PlayerContainer {
-	protected Map<Long, Player> players;
+	protected Map<Session, Player> players;
 	public PlayerContainer(){
-		players = Collections.synchronizedMap(new HashMap<Long, Player>());
+		players = Collections.synchronizedMap(new HashMap<Session, Player>());
 	}
 	
-	public Map<Long, Player> getPlayers(){
+	public Map<Session, Player> getPlayers(){
 		return players;
 	}
 	
@@ -38,8 +41,18 @@ public abstract class PlayerContainer {
 		}
 	}
 	
-	public Player getPlayer(int pid){
-		return players.get(pid);
+	public Player getPlayer(Session session){
+		return players.get(session);
+	}
+	
+	public Player getPlayer(long pid){
+		Player player = null;
+		for(Player p : players.values()){
+			if(p.getPid() == pid){
+				player = p;
+			}
+		}
+		return player;
 	}
 	
 	public Player getPlayer(String name){
@@ -53,10 +66,18 @@ public abstract class PlayerContainer {
 	}
 	
 	public void addPlayer(Player player){
-		players.put(player.getPid(), player);
+		players.put(player.getSession(), player);
 	}
 	
 	public void removePlayer(Player player){
-		players.remove(player.getPid());
+		players.remove(player.getSession());
+	}
+	
+	public HashMapArray buildPlayersInfo(){
+		HashMapArray arr = new HashMapArray();
+		for(Player p : players.values()){
+			arr.addMap(p.buildPlayerInfo());
+		}
+		return arr;
 	}
 }

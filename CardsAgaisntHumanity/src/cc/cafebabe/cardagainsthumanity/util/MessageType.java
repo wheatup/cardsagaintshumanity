@@ -7,5 +7,7 @@ public enum MessageType
 	TEXT,
 	ROOMINFO,
 	GAMEINFO,
-	SERVERINFO
+	SERVERINFO,
+	LOBBYINFO,
+	MYINFO
 }

@@ -21,6 +21,7 @@
     <Content Include="src\css\app.css" />
     <Content Include="index.html" />
     <Content Include="src\script\lib\jquery-2.1.1.min.js" />
+    <Content Include="src\script\lib\touch.js" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>

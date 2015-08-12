@@ -1,6 +1,7 @@
 package cc.cafebabe.cardagainsthumanity.game;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public class GameWorld extends PlayerContainer{
 	public static final int MAX_PLAYER = 200;
@@ -18,7 +19,13 @@ public class GameWorld extends PlayerContainer{
 	
 	public void sendPlayerInWorld(Player player){
 		addPlayer(player);
+		player.sendMessage(Json2Map.toJSONString(Json2Map.buildMyInfo(player)));
 		getLobby().sendPlayerInLobby(player);
+	}
+	
+	public void removePlayerFromWorld(Player player){
+		removePlayer(player);
+		System.out.println("ÓÃ»§ÍË³ö:" + player.getName());
 	}
 	
 	public int getPlayerCount(){

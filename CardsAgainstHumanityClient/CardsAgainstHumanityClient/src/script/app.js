@@ -90,6 +90,24 @@ var EventObject = (function () {
     }
     return EventObject;
 })();
+var Util = (function () {
+    function Util() {
+    }
+    Util.replaceAll = function (org, findStr, repStr) {
+        var str = org;
+        var index = 0;
+        while (index <= str.length) {
+            index = str.indexOf(findStr, index);
+            if (index == -1) {
+                break;
+            }
+            str = str.replace(findStr, repStr);
+            index += repStr.length;
+        }
+        return str;
+    };
+    return Util;
+})();
 var Server = (function () {
     function Server() {
         var _this = this;
@@ -151,6 +169,21 @@ var Server = (function () {
     };
     return Server;
 })();
+var PackageBuilder = (function () {
+    function PackageBuilder() {
+    }
+    PackageBuilder.buildLoginPackage = function (username, password) {
+        username = username.replace(/"/g, "\\\"");
+        username = username.replace(/'/g, "\\'");
+        username = username.replace(/\\/g, "\\\\");
+        password = password.replace(/"/g, "\\\"");
+        password = password.replace(/'/g, "\\'");
+        password = password.replace(/\\/g, "\\\\");
+        var pack = '{"t":"login", "username":"' + username + '", "password":"' + password + '"}';
+        return pack;
+    };
+    return PackageBuilder;
+})();
 var MessageAnalysis = (function () {
     function MessageAnalysis() {
     }
@@ -169,6 +202,8 @@ var Signal = (function () {
     function Signal() {
     }
     Signal.ServerInfo = "serverinfo";
+    Signal.OnClickLogin = "OnClickLogin";
+    Signal.LoginErr = "logerr";
     return Signal;
 })();
 var Main = (function () {
@@ -183,6 +218,7 @@ var Main = (function () {
 var LoginState = (function () {
     function LoginState() {
         this.ass = "ass";
+        this.loginable = false;
     }
     LoginState.prototype.start = function () {
         this.bindEvents();
@@ -192,11 +228,82 @@ var LoginState = (function () {
     };
     LoginState.prototype.bindEvents = function () {
         MyEvent.bind(Signal.ServerInfo, this.onCanLogin, this);
+        MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
+        MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
+        jQuery("#submit").tapOrClick(this.onClickLogin);
     };
     LoginState.prototype.showLoginPage = function () {
         jQuery("#loginPage").show();
+        LoginState.setLoginTop("正在连接服务器...");
+        this.activateLoginArea(false);
+    };
+    LoginState.setLoginTop = function (tip) {
+        jQuery("#logintip").html(tip);
+    };
+    LoginState.prototype.activateLoginArea = function (activate) {
+        if (activate) {
+            jQuery("#username").attr("disabled", false);
+            jQuery("#password").attr("disabled", false);
+        }
+        else {
+            jQuery("#username").attr("disabled", true);
+            jQuery("#password").attr("disabled", true);
+        }
     };
     LoginState.prototype.onCanLogin = function (data, thisObject) {
+        jQuery("#serverinfo").html(data.players + "/" + data.max);
+        if (data.players < data.max) {
+            LoginState.setLoginTop("请登录，如果该用户名没有注册过，则将自动为您注册。");
+            thisObject.activateLoginArea(true);
+            thisObject.loginable = true;
+        }
+    };
+    LoginState.prototype.onClickLogin = function () {
+        MyEvent.call(Signal.OnClickLogin);
+    };
+    LoginState.prototype.onLogin = function (data, thisObject) {
+        if (!thisObject.loginable)
+            return;
+        var $username = document.getElementById("username");
+        var $password = document.getElementById("password");
+        var username = $username.value.trim();
+        var password = $password.value.trim();
+        if (username.length < 2) {
+            LoginState.setLoginTop('您的用户名太短！请至少超过<s style="color:#999;">6cm</s>2个字符！');
+            return;
+        }
+        else if (username.length > 16) {
+            LoginState.setLoginTop('您的用户名太长！');
+            return;
+        }
+        else if (password.length < 4) {
+            LoginState.setLoginTop('您的密码太短！请至少超过4个字符！');
+            return;
+        }
+        else if (password.length > 20) {
+            LoginState.setLoginTop('您的密码太长！');
+            return;
+        }
+        else if (!LoginState.isUsernameLegal(username)) {
+            LoginState.setLoginTop('您的用户名不合法！');
+            return;
+        }
+        thisObject.sendLogin(username, password);
+    };
+    LoginState.prototype.sendLogin = function (username, password) {
+        LoginState.setLoginTop('正在登录...');
+        Server.instance.send(PackageBuilder.buildLoginPackage(username, password));
+    };
+    LoginState.isUsernameLegal = function (name) {
+        return true;
+    };
+    LoginState.prototype.onLoginErr = function (data, _this) {
+        if (data == 101) {
+            LoginState.setLoginTop('用户名密码验证不通过，请检查输入。');
+        }
+        else if (data == 102) {
+            LoginState.setLoginTop('密码错误，该用户已被注册！');
+        }
     };
     return LoginState;
 })();
