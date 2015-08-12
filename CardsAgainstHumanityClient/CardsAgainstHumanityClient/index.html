@@ -13,12 +13,12 @@
         <div class="page" id="loginPage">
             <div class="title">
                 <div class="titleText">反人类卡牌游戏</div>
-                <div class="titleSubtext">CardsAgainstHumanity</div>
-                <div class="titleSubtext">- 重制版 -</div>
+                <div class="titleSubtext">Cards Against Humanity</div>
+                <div class="titleSubtext">- 重生 : ver alpha0.1 -</div>
                 <div class="info">
-                    <div class="infocardwhite">游戏分为黑卡与白卡，黑卡包含一段问题，或是缺少词语的句子；白卡包含一条短语。</div>
-                    <div class="infocard">每轮游戏依次选择一名玩家作为裁判，玩家手中有8张白卡，用于回答黑卡所提出的问题，所有玩家选择完卡牌之后亮出自己的白卡。</div>
-                    <div class="infocardwhite">裁判选择一张最满(wu)意(jie)的(cao)答案，并为该玩家获得一分。</div>
+                    <div class="infocardwhite">游戏分为黑卡与白卡，黑卡包含一段缺少1-3个词语的句子，白卡包含一条短语。</div>
+                    <div class="infocard">每轮游戏依次选择一名玩家作为裁判，玩家手中有10张白卡，用于回答黑卡所提出的问题，所有玩家选择完卡牌之后亮出自己的白卡。</div>
+                    <div class="infocardwhite">裁判选择一张最满(wu)意(jie)的(cao)答案，并与该玩家同时获得一分，连续胜出者将获得额外奖励。</div>
                 </div>
             </div>
             <div class="loginArea">
@@ -30,16 +30,158 @@
                     </tr>
                     <tr>
                         <td><label>用户名:</label></td>
-                        <td><input id="username" type="text" maxlength="16" /></td>
+                        <td><input id="username" type="text" maxlength="20" /></td>
                     </tr>
                     <tr>
                         <td><label>密码:</label></td>
-                        <td><input id="password" type="password" maxlength="16" /></td>
+                        <td><input id="password" type="password" maxlength="20" /></td>
                     </tr>
                     <tr>
                         <td colspan="2"><div class="button" id="submit">登录/注册</div></td>
                     </tr>
                 </table>
+            </div>
+        </div>
+
+        <div class="page" id="lobbyPage">
+            <div id="leftArea">
+                <div id="roomArea">
+                    <div class="room" id="1">
+                        <div class="left">
+                            <div id="roomnum">001</div>
+                            <div id="desc">默认房间</div>
+                        </div>
+                        <div class="middle">
+                            <div id="players">玩家:9/10</div>
+                            <div id="spectors">观众:1/16</div>
+                            <div id="stat">游戏中</div>
+                        </div>
+                        <div id="packsArea">
+                            <div class="cardpack" id="1">基本</div>
+                            <div class="cardpack" id="1">基本EX</div>
+                            <div class="cardpack" id="1">Bilibili</div>
+                            <div class="cardpack" id="1">Acfun</div>
+                        </div>
+                    </div>
+
+
+                    <div class="room" id="1">
+                        <div class="left">
+                            <div id="roomnum">002</div>
+                            <div id="desc">中华人民膜蛤共和国</div>
+                        </div>
+                        <div class="middle">
+                            <div id="players">玩家:10/10</div>
+                            <div id="spectors">观众:7/16</div>
+                            <div id="stat">游戏中</div>
+                        </div>
+                        <div id="packsArea">
+                            <div class="cardpack" id="1">基本</div>
+                            <div class="cardpack" id="1">基本EX</div>
+                            <div class="cardpack" id="1">Bilibili</div>
+                            <div class="cardpack" id="1">Acfun</div>
+                            <div class="cardpack" id="1">动漫综合</div>
+                            <div class="cardpack" id="1">英文</div>
+                            <div class="cardpack" id="1">作死</div>
+                            <div class="cardpack" id="1">东方Project</div>
+                            <div class="cardpack" id="1">舰娘</div>
+                            <div class="cardpack" id="1">A岛</div>
+                            <div class="cardpack" id="1">CCTV</div>
+                            <div class="cardpack" id="1">游戏综合</div>
+                            <div class="cardpack" id="1">超恶俗</div>
+                        </div>
+                    </div>
+
+                    <div class="room" id="1">
+                        <div class="left">
+                            <div id="roomnum">004</div>
+                            <div id="desc">卡牌起源</div>
+                        </div>
+                        <div class="middle">
+                            <div id="players">玩家:3/10</div>
+                            <div id="spectors">观众:0/16</div>
+                            <div id="stat">等待中</div>
+                        </div>
+                        <div id="packsArea">
+                            <div class="cardpack" id="1">基本</div>
+                        </div>
+                    </div>
+
+                    <div class="room" id="1">
+                        <div class="left">
+                            <div id="roomnum">005</div>
+                            <div id="desc">默认房间</div>
+                        </div>
+                        <div class="middle">
+                            <div id="players">玩家:9/10</div>
+                            <div id="spectors">观众:1/16</div>
+                            <div id="stat">游戏中</div>
+                        </div>
+                        <div id="packsArea">
+                            <div class="cardpack" id="1">基本</div>
+                            <div class="cardpack" id="1">基本EX</div>
+                            <div class="cardpack" id="1">Bilibili</div>
+                            <div class="cardpack" id="1">Acfun</div>
+                            <div class="cardpack" id="1">动漫综合</div>
+                            <div class="cardpack" id="1">英文</div>
+                            <div class="cardpack" id="1">作死</div>
+                            <div class="cardpack" id="1">东方Project</div>
+                            <div class="cardpack" id="1">舰娘</div>
+                            <div class="cardpack" id="1">A岛</div>
+                            <div class="cardpack" id="1">CCTV</div>
+                            <div class="cardpack" id="1">游戏综合</div>
+                            <div class="cardpack" id="1">超恶俗</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="leftBottomArea">
+                    <div id="statArea">
+                        <div id="nameTag">admin</div>
+                        <div id="levelinfo">
+                            <div id="level">Lv.59</div>
+                            <div id="levelBarArea">
+                                <div id="levelBarBack"></div>
+                                <div id="levelBarExp">
+                                    8051/8896
+                                </div>
+                            </div>
+                        </div>
+                        <div id="credit"><label id="title">节操:</label><label id="content">354</label></div>
+                        <div id="fish"><label id="title">裁判分:</label><label id="content">15</label></div>
+                    </div>
+                    <div id="chatArea">
+                        <div id="messages" class="messagebox">
+                            <div id="entry"><label id="server">[系统]admin进入了大厅。</label></div>
+                            <div id="entry"><label id="name">[习近平]</label><label id="content">我是习大大，你们都该选我</label></div>
+                            <div id="entry"><label id="name">[admin]</label><label id="content">什么鬼</label></div>
+                            <div id="entry"><label id="name">[灵车漂移]</label><label id="content">23333333</label></div>
+                            <div id="entry"><label id="server">[系统]你爸 离开了大厅。</label></div>
+                        </div>
+                        <div id="inputArea">
+                            <input type="text" id="inputbox" class="inputbox" />
+                            <div id="submit" class="button">送信</div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            <div id="rightArea">
+                <div id="playersArea">
+                    <div class="player">admin</div>
+                    <div class="player">灵车漂移</div>
+                    <div class="player">习近平</div>
+                    <div class="player">ass</div>
+                    <div class="player">爆炸</div>
+                </div>
+                <div id="settingsArea">
+                    <div class="button">个人设置</div>
+                    <div class="button">信箱</div>
+                    <div class="button">制作卡牌</div>
+                    <div class="button">建议意见</div>
+                    <div class="button">关于</div>
+                    <div class="button">退出登录</div>
+                </div>
             </div>
         </div>
     </div>

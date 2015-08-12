@@ -11,8 +11,8 @@ public class BaseDAO {
 	public static void init(){
 		try {
 			Class.forName("org.sqlite.JDBC");
-			playersDB = DriverManager.getConnection("jdbc:sqlite:player.db");
-			cardsDB = DriverManager.getConnection("jdbc:sqlite:card.db");
+			playersDB = DriverManager.getConnection("jdbc:sqlite://c:/CAH2Data/players.db");
+			cardsDB = DriverManager.getConnection("jdbc:sqlite://c:/CAH2Data/cards.db");
 			BaseDAO.playersDB.setAutoCommit(false);
 			BaseDAO.cardsDB.setAutoCommit(false);
 		} catch (SQLException e) {

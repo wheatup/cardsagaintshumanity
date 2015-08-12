@@ -91,7 +91,7 @@ public class TaskHandler implements Runnable {
 	}
 	
 	private void handleLoginMessage(Session session, String username, String password){
-		if(username == null || username.length() < 2 || username.length() > 16 ||
+		if(username == null || Misc.getStringLen(username) < 2 || Misc.getStringLen(username) > 20 ||
 				password == null || password.length() < 4 || password.length() > 20){
 			try
 			{

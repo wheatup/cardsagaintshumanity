@@ -17,6 +17,7 @@ public class PlayerService
 				System.out.println("µÇÂ¼ÓÃ»§:" + name);
 				player.setFirstLogin(false);
 				player.setLastMessageTime(System.currentTimeMillis());
+				updatePlayerLogTime(player);
 				return player;
 			}else{
 				return null;

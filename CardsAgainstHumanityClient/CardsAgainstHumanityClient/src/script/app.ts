@@ -107,7 +107,18 @@ class Util {
 			index += repStr.length;
 		}
 		return str;
-	}
+    }
+
+    public static getStringLen(str: string): number {
+        var i, len, code;
+        if (str == null || str == "") return 0;
+        len = str.length;
+        for (i = 0; i < str.length; i++) {
+            code = str.charCodeAt(i);
+            if (code > 255) { len++; }
+        }
+        return len;
+    }   
 }
 
 class Server {
@@ -224,11 +235,44 @@ class Signal {
 	public static LobbyInfo: string = "lobbyinfo";
 }
 
+class Player {
+    public pid: number;
+    public name: string;
+    public exp: number;
+    public credit: number;
+    public state: number;
+    public fish: number;
+
+    public getLevel(): number {
+        var lvl: number = 1;
+        while (this.getLevelExp(lvl) < this.exp) {
+            lvl++;
+        }
+        return lvl;
+    }
+
+    public getNeedExp(): number {
+        return Math.max(this.getLevelExp(this.getLevel()) - this.getLevelExp(this.getLevel() - 1), 0);
+    }
+
+    public getRemainExp(): number {
+        return Math.max(this.exp - this.getLevelExp(this.getLevel() - 1), 0);
+    }
+
+    public getLevelExp(lvl: number): number {
+        if (lvl == 0)
+            return 0;
+        return 10 + Math.round(Math.pow((lvl - 1) * 1.3, 1.9) * 5); 
+    }
+}
+
 class Main {
     public static server: Server;
     public static state: State;
-    private loginState: LoginState;
-	private lobbyState: LobbyState;
+    public static me: Player;
+
+    private static loginState: LoginState;
+    private static lobbyState: LobbyState;
 
 	private static freeze: boolean = false;
 	public static isFrozen(): boolean {
@@ -244,9 +288,10 @@ class Main {
 	}
 
     public start(): void {
-        this.loginState = new LoginState();
-		this.lobbyState = new LobbyState();
-        this.loginState.start();
+        Main.me = new Player();
+        Main.loginState = new LoginState();
+        Main.lobbyState = new LobbyState();
+        Main.loginState.start();
     }
 }
 
@@ -263,8 +308,9 @@ class LoginState {
     public bindEvents(): void {
         MyEvent.bind(Signal.ServerInfo, this.onCanLogin, this);
 		MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
-		MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
-		jQuery("#submit").tapOrClick(this.onClickLogin);
+        MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
+        MyEvent.bind(Signal.MyInfo, this.onShowLobbyPage, this);
+        jQuery(".loginArea #submit").tapOrClick(this.onClickLogin);
     }
 
     public showLoginPage(): void {
@@ -290,10 +336,9 @@ class LoginState {
     public onCanLogin(data: any, thisObject: LoginState): void {
 		Main.state = State.CONNECTED;
 		var par = parseInt(data.players) / parseInt(data.max) * 100;
-
 		jQuery("#onlineBar").css("width", par + "%");
 		jQuery("#serverinfo").html(data.players + "/" + data.max);
-        if (data.players < data.max) {
+        if (parseInt(data.players) < parseInt(data.max)) {
 			LoginState.setLoginTip("请登录，如果该用户名没有注册过，则将自动为您注册。");
 			thisObject.activateLoginArea(true);
 			thisObject.loginable = true;
@@ -309,13 +354,13 @@ class LoginState {
 		var $username: any = document.getElementById("username");
 		var $password: any = document.getElementById("password");
 		var username: string = $username.value.trim();
-		var password: string = $password.value.trim();
+        var password: string = $password.value.trim();
 
-		if (username.length < 2) {
+        if (Util.getStringLen(username) < 2) {
 			LoginState.setLoginTip('您的用户名太短！请至少超过<s style="color:#999;">6cm</s>2个字符！');
 			return;
-		} else if (username.length > 16) {
-			LoginState.setLoginTip('您的用户名太长！');
+        } else if (Util.getStringLen(username) > 20) {
+			LoginState.setLoginTip('您的用户名太长！请确保用户名小于20个字符(中文算2个)');
 			return;
 		} else if (password.length < 4) {
 			LoginState.setLoginTip('您的密码太短！请至少超过4个字符！');
@@ -347,26 +392,60 @@ class LoginState {
 		} else if (data == 102) {
 			LoginState.setLoginTip('密码错误，该用户已被注册！');
 		}
-	}
+    }
+
+    private onShowLobbyPage(data:any, thisObject: LoginState): void {
+        MyEvent.unbind(Signal.ServerInfo, this.onCanLogin);
+        MyEvent.unbind(Signal.OnClickLogin, this.onLogin);
+        MyEvent.unbind(Signal.LoginErr, this.onLoginErr);
+        MyEvent.unbind(Signal.MyInfo, this.onShowLobbyPage);
+        jQuery("#loginPage").hide();
+    }
 }
 
 class LobbyState {
 	public constructor() {
 		this.bindEvents();
-	}
+    }
+
+    public showLobbyPage(): void {
+        jQuery("#lobbyPage").show();
+    }
 
 	private bindEvents(): void {
 		MyEvent.bind(Signal.MyInfo, this.OnGetMyInfo, this);
 		MyEvent.bind(Signal.LobbyInfo, this.OnGetLobbyInfo, this);
 	}
 
-	private OnGetMyInfo(data: any, _this: LobbyState): void {
-		
+    private OnGetMyInfo(data: any, _this: LobbyState): void {
+        _this.showLobbyPage();
+        _this.updateMyInfo(data);
 	}
 
 	private OnGetLobbyInfo(data: any, _this: LobbyState): void {
 		Main.state = State.LOBBY;
-	}
+    }
+
+
+    public updateMyInfo(data: any): void{
+        Main.me.pid = data.info[0].pid;
+        Main.me.exp = data.info[0].exp;
+        Main.me.state = data.info[0].state;
+        Main.me.credit = data.info[0].credit;
+        Main.me.fish = data.info[0].fish;
+        Main.me.name = data.info[0].name;
+
+        var level: number = Main.me.getLevel();
+        var remainExp: number = Main.me.getRemainExp();
+        var needExp: number = Main.me.getNeedExp();
+
+        jQuery("#statArea #nameTag").html(Main.me.name);
+        jQuery("#statArea #level").html("Lv." + level);
+        jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
+        jQuery("#statArea #credit #content").html(Main.me.credit);
+        jQuery("#statArea #fish #content").html(Main.me.fish);
+        jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
+    }
 }
 
 window.onload = () => {

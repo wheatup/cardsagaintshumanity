@@ -153,6 +153,8 @@ public class Player
 		map.put("pid", this.getPid());
 		map.put("name", this.getName());
 		map.put("exp", this.getGameData().getExp());
+		map.put("credit", this.getGameData().getCredit());
+		map.put("fish", this.getGameData().getFish());
 		map.put("state", this.getState());
 		return map;
 	}

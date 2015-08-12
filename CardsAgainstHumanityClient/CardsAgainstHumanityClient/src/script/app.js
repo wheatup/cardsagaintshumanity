@@ -106,6 +106,19 @@ var Util = (function () {
         }
         return str;
     };
+    Util.getStringLen = function (str) {
+        var i, len, code;
+        if (str == null || str == "")
+            return 0;
+        len = str.length;
+        for (i = 0; i < str.length; i++) {
+            code = str.charCodeAt(i);
+            if (code > 255) {
+                len++;
+            }
+        }
+        return len;
+    };
     return Util;
 })();
 var Server = (function () {
@@ -217,6 +230,29 @@ var Signal = (function () {
     Signal.LobbyInfo = "lobbyinfo";
     return Signal;
 })();
+var Player = (function () {
+    function Player() {
+    }
+    Player.prototype.getLevel = function () {
+        var lvl = 1;
+        while (this.getLevelExp(lvl) < this.exp) {
+            lvl++;
+        }
+        return lvl;
+    };
+    Player.prototype.getNeedExp = function () {
+        return Math.max(this.getLevelExp(this.getLevel()) - this.getLevelExp(this.getLevel() - 1), 0);
+    };
+    Player.prototype.getRemainExp = function () {
+        return Math.max(this.exp - this.getLevelExp(this.getLevel() - 1), 0);
+    };
+    Player.prototype.getLevelExp = function (lvl) {
+        if (lvl == 0)
+            return 0;
+        return 10 + Math.round(Math.pow((lvl - 1) * 1.3, 1.9) * 5);
+    };
+    return Player;
+})();
 var Main = (function () {
     function Main() {
     }
@@ -230,9 +266,10 @@ var Main = (function () {
         Main.freeze = false;
     };
     Main.prototype.start = function () {
-        this.loginState = new LoginState();
-        this.lobbyState = new LobbyState();
-        this.loginState.start();
+        Main.me = new Player();
+        Main.loginState = new LoginState();
+        Main.lobbyState = new LobbyState();
+        Main.loginState.start();
     };
     Main.freeze = false;
     return Main;
@@ -252,7 +289,8 @@ var LoginState = (function () {
         MyEvent.bind(Signal.ServerInfo, this.onCanLogin, this);
         MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
         MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
-        jQuery("#submit").tapOrClick(this.onClickLogin);
+        MyEvent.bind(Signal.MyInfo, this.onShowLobbyPage, this);
+        jQuery(".loginArea #submit").tapOrClick(this.onClickLogin);
     };
     LoginState.prototype.showLoginPage = function () {
         jQuery("#loginPage").show();
@@ -277,7 +315,7 @@ var LoginState = (function () {
         var par = parseInt(data.players) / parseInt(data.max) * 100;
         jQuery("#onlineBar").css("width", par + "%");
         jQuery("#serverinfo").html(data.players + "/" + data.max);
-        if (data.players < data.max) {
+        if (parseInt(data.players) < parseInt(data.max)) {
             LoginState.setLoginTip("请登录，如果该用户名没有注册过，则将自动为您注册。");
             thisObject.activateLoginArea(true);
             thisObject.loginable = true;
@@ -293,12 +331,12 @@ var LoginState = (function () {
         var $password = document.getElementById("password");
         var username = $username.value.trim();
         var password = $password.value.trim();
-        if (username.length < 2) {
+        if (Util.getStringLen(username) < 2) {
             LoginState.setLoginTip('您的用户名太短！请至少超过<s style="color:#999;">6cm</s>2个字符！');
             return;
         }
-        else if (username.length > 16) {
-            LoginState.setLoginTip('您的用户名太长！');
+        else if (Util.getStringLen(username) > 20) {
+            LoginState.setLoginTip('您的用户名太长！请确保用户名小于20个字符(中文算2个)');
             return;
         }
         else if (password.length < 4) {
@@ -332,20 +370,49 @@ var LoginState = (function () {
             LoginState.setLoginTip('密码错误，该用户已被注册！');
         }
     };
+    LoginState.prototype.onShowLobbyPage = function (data, thisObject) {
+        MyEvent.unbind(Signal.ServerInfo, this.onCanLogin);
+        MyEvent.unbind(Signal.OnClickLogin, this.onLogin);
+        MyEvent.unbind(Signal.LoginErr, this.onLoginErr);
+        MyEvent.unbind(Signal.MyInfo, this.onShowLobbyPage);
+        jQuery("#loginPage").hide();
+    };
     return LoginState;
 })();
 var LobbyState = (function () {
     function LobbyState() {
         this.bindEvents();
     }
+    LobbyState.prototype.showLobbyPage = function () {
+        jQuery("#lobbyPage").show();
+    };
     LobbyState.prototype.bindEvents = function () {
         MyEvent.bind(Signal.MyInfo, this.OnGetMyInfo, this);
         MyEvent.bind(Signal.LobbyInfo, this.OnGetLobbyInfo, this);
     };
     LobbyState.prototype.OnGetMyInfo = function (data, _this) {
+        _this.showLobbyPage();
+        _this.updateMyInfo(data);
     };
     LobbyState.prototype.OnGetLobbyInfo = function (data, _this) {
         Main.state = State.LOBBY;
+    };
+    LobbyState.prototype.updateMyInfo = function (data) {
+        Main.me.pid = data.info[0].pid;
+        Main.me.exp = data.info[0].exp;
+        Main.me.state = data.info[0].state;
+        Main.me.credit = data.info[0].credit;
+        Main.me.fish = data.info[0].fish;
+        Main.me.name = data.info[0].name;
+        var level = Main.me.getLevel();
+        var remainExp = Main.me.getRemainExp();
+        var needExp = Main.me.getNeedExp();
+        jQuery("#statArea #nameTag").html(Main.me.name);
+        jQuery("#statArea #level").html("Lv." + level);
+        jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
+        jQuery("#statArea #credit #content").html(Main.me.credit);
+        jQuery("#statArea #fish #content").html(Main.me.fish);
+        jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     };
     return LobbyState;
 })();
