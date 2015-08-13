@@ -28,6 +28,10 @@ public class Lobby extends PlayerContainer{
 		return -1;
 	}
 	
+	public Room getRoom(int id){
+		return rooms.get(id);
+	}
+	
 	public void sendPlayerInLobby(Player player){
 		addPlayer(player);
 		player.sendMessage(Json2Map.buildLobbyInfo(this));
@@ -38,5 +42,10 @@ public class Lobby extends PlayerContainer{
 	public void removePlayerFromLobby(Player player){
 		removePlayer(player);
 		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
+	}
+	
+	public void destroyRoom(int id){
+		rooms.remove(id);
+		broadcastMessage(Json2Map.BuildKVMessage("destroyroom", id));
 	}
 }

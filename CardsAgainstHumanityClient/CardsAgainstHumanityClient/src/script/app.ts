@@ -126,6 +126,15 @@ class Player {
     }
 }
 
+class Room {
+    public id: number;
+    public roomname: string;
+    public password: string;
+    public playerCount: number;
+    public spectorCount: number;
+    public cardPacks: Array<string>;
+}
+
 class Util {
 	public static replaceAll(org:string, findStr:string, repStr:string) {
 		var str: string = org;
@@ -171,7 +180,11 @@ class Util {
 		text = text.replace(/'/g, "\\'");
 		text = text.replace(/\\/g, "\\\\");
 		return text;
-	}
+    }
+
+    public static showMessage(text: string): void {
+        MyEvent.call(Signal.TEXT, { text: text, pid: 0 });
+    }
 }
 
 class Server {
@@ -283,7 +296,12 @@ class PackageBuilder {
 	public static buildQuitPackage(): string {
 		var pack = '{"t":"quit"}';
 		return pack;
-	}
+    }
+
+    public static buildCreateRoomPackage(): string {
+        var pack = '{"t":"createroom"}';
+        return pack;
+    }
 }
 
 class MessageAnalysis {
@@ -308,7 +326,9 @@ class Signal {
 	public static PLAYERENTER: string = "playerenter";
 	public static PLAYERLEAVE: string = "playerleave";
 	public static TEXT: string = "text";
-	public static SendText: string = "sendtext";
+    public static SendText: string = "sendtext";
+    public static RoomInfo: string = "roominfo";
+    public static ONCLICKCREATEROOM: string = "ONCLICKCREATEROOM";
 }
 
 class Main {
@@ -338,8 +358,7 @@ class Main {
         Main.loginState = new LoginState();
         Main.lobbyState = new LobbyState();
 		Main.playState = new PlayState();
-        //Main.loginState.start();
-		Main.playState.showGamePage(null);
+        Main.loginState.start();
     }
 }
 
@@ -465,7 +484,9 @@ class LoginState {
 }
 
 class LobbyState {
-	private players: Array<Player>;
+    private players: Array<Player>;
+    private room: Array<Room>;
+    private canCreateRoom: boolean = false;
 
 	public constructor() {
 		
@@ -480,13 +501,21 @@ class LobbyState {
 			}
 		}
 		return p;
-	}
+    }
+
+    public clearLobbyPage(): void {
+        jQuery("#roomArea").empty();
+        jQuery("#chatArea #messages").empty();
+        jQuery("#playersArea").empty();
+    }
 
     public showLobbyPage(myinfo: any): void {
+        //this.clearLobbyPage();
 		this.bindEvents();
         jQuery("#lobbyPage").show();
 		this.clearChatArea();
-		this.getMyInfo(myinfo);
+        this.getMyInfo(myinfo);
+        this.canCreateRoom = true;
     }
 
 	private bindEvents(): void {
@@ -494,26 +523,30 @@ class LobbyState {
 		MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
 		MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
 		MyEvent.bind(Signal.SendText, this.onSendText, this);
-		jQuery('#inputArea #inputbox').keypress(function (event) {
+        jQuery('#lobbyPage #inputArea #inputbox').keypress(function (event) {
 			var keycode = (event.keyCode ? event.keyCode : event.which);
 			if (keycode == '13') {
 				MyEvent.call(Signal.SendText);
 			}
 		});
-		jQuery('#inputArea #submit').tapOrClick(function (event) {
+        jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
 			MyEvent.call(Signal.SendText);
-		}); 
+        });
+        jQuery("#settingsArea #createRoom").tapOrClick(function () { MyEvent.call(Signal.ONCLICKCREATEROOM) });
+        MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom, this);
+        MyEvent.bind(Signal.RoomInfo, this.onReceiveRoomInfo, this);
 	}
 
 	private unbindEvents(): void {
 		MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
 		MyEvent.unbind(Signal.PLAYERLEAVE, this.onPlayerLeave);
 		MyEvent.unbind(Signal.TEXT, this.onReceiveText);
-		MyEvent.unbind(Signal.SendText, this.onSendText);
+        MyEvent.unbind(Signal.SendText, this.onSendText);
+        MyEvent.unbind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
 	}
 
 	public onSendText(): void {
-		var $text: any = jQuery("#inputArea #inputbox")[0];
+		var $text: any = jQuery("#lobbyPage #inputArea #inputbox")[0];
 		var text: string = $text.value.trim();
 		if (text == null || text.length == 0 || text.length > 200) return;
 		Server.instance.send(PackageBuilder.buildTextPackage(text), true, true);
@@ -522,7 +555,16 @@ class LobbyState {
 
     private getMyInfo(data: any): void {
         this.updateMyInfo(data);
-	}
+    }
+
+    private onClickCreateRoom(data: any, _this: LobbyState): void {
+        if (!_this.canCreateRoom) {
+            Util.showMessage("您现在不能创建房间！");
+            return;
+        }
+        Server.instance.send(PackageBuilder.buildCreateRoomPackage(), true, true);
+        _this.canCreateRoom = false;
+    }
 
 	public getLobbyInfo(data: any): void {
 		this.players = new Array<Player>();
@@ -590,7 +632,7 @@ class LobbyState {
 			MyEvent.call(Signal.TEXT, { text: p.name + " 离开了大厅", pid: 0 });
 			_this.removeOnePlayer(p.pid);
 		}
-	}
+    }
 
 	public addOnePlayer(player: Player): void {
 		this.players.push(player);
@@ -613,25 +655,240 @@ class LobbyState {
 	}
 
 	public updatePlayerList(): void {
-		var ele: any = jQuery("#playersArea");
+		var ele: any = jQuery("#lobbyPage #playersArea");
 		ele.empty();
 		for (var i = 0; i < this.players.length; i++) {
 			ele.append('<div class="player" title="pid:' + this.players[i].pid + '" id="' + this.players[i].pid + '"><span id="level">Lv.' + this.players[i].getLevel() + '</span><span id="name">' + this.players[i].name + '</span></div>');
 		}
-	}
+    }
+
+    public onReceiveRoomInfo(data: any, _this: LobbyState): void {
+        jQuery("#lobbyPage").hide();
+        Main.playState.showGamePage(data);
+        _this.unbindEvents();
+    }
 }
 
 class PlayState{
 	private players: Array<Player>;
-	private spectors: Array<Player>;
+	private spectators: Array<Player>;
 
 	public constructor() {
-
+        this.players = new Array<Player>();
+        this.spectators = new Array<Player>();
 	}
 
-	public showGamePage(data:any): void {
-		jQuery("#gamePage").show();
-	}
+    public showGamePage(data: any): void {
+        this.bindEvents();
+        this.clearGamePage();
+        jQuery("#gamePage").show();
+        this.showBlackCardArea();
+        this.initRoomInfo(data);
+        this.updateMyInfoDisplay();
+        //jQuery(".settingsPage[id=gamestart]").show();
+    }
+
+    private initRoomInfo(data: any): void {
+        jQuery("#gamePage #roomnum").html(data.id);
+        jQuery("#gamePage #roomname").html(data.name);
+        for (var i: number = 0; i < data.players.length; i++) {
+            var p: Player = Util.convertPlayerData(data.players[i]);
+            this.addOnePlayer(p, false);
+        }
+
+        for (var i: number = 0; i < data.spectators.length; i++) {
+            var p: Player = Util.convertPlayerData(data.spectators[i]);
+            this.addOnePlayer(p, true);
+        }
+    }
+
+    private bindEvents(): void {
+        MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
+        MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
+        MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
+        MyEvent.bind(Signal.SendText, this.onSendText, this);
+        jQuery('#gamePage #inputArea #inputbox').keypress(function (event) {
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if (keycode == '13') {
+                MyEvent.call(Signal.SendText);
+            }
+        });
+        jQuery('#gamePage #inputArea #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.SendText);
+        });
+    }
+
+    private unbindEvents(): void {
+        MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
+        MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
+        MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
+        MyEvent.bind(Signal.SendText, this.onSendText, this);
+    }
+
+    public clearGamePage(): void {
+        jQuery("#roominfo #roomnum").empty();
+        jQuery("#roominfo #roomname").empty();
+        jQuery("#roominfo #roomname").empty();
+        jQuery("#blackCardArea #blackCard").empty();
+        jQuery("#timerArea #timerFill").css("width", "0%");
+        jQuery("#chatArea #messages").empty();
+        jQuery("#tableArea #table").empty();
+        jQuery("#handArea #hand").empty();
+        jQuery("#rightArea #playerArea").empty();
+        jQuery("#rightArea #spectateArea").empty();
+    }
+
+    public showHostSettings(): void {
+        jQuery("#blackCardArea #blackCard").hide();
+        jQuery("#blackCardArea #hostSettings").show();
+    }
+
+    public showBlackCardArea(): void {
+        jQuery("#blackCardArea #blackCard").show();
+        jQuery("#blackCardArea #hostSettings").hide();
+    }
+
+    public updateMyInfoDisplay(): void {
+
+        var level: number = Main.me.getLevel();
+        var remainExp: number = Main.me.getRemainExp();
+        var needExp: number = Main.me.getNeedExp();
+
+        jQuery("#gamePage #statArea #nameTag").html(Main.me.name);
+        jQuery("#gamePage #statArea #nameTag").attr("title", "pid:" + Main.me.pid);
+        jQuery("#gamePage #statArea #level").html("Lv." + level);
+        jQuery("#gamePage #statArea #levelBarExp").html(remainExp + "/" + needExp);
+        jQuery("#gamePage #statArea #credit #content").html(Main.me.credit);
+        jQuery("#gamePage #statArea #fish #content").html(Main.me.fish);
+        jQuery("#gamePage #statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
+    }
+
+    public updateMyInfo(data: any): void {
+        Main.me = Util.convertPlayerData(data.info[0]);
+        this.updateMyInfoDisplay();
+    }
+
+    public getPlayerByPid(pid: number): Player {
+        var p: Player = null;
+        for (var i = 0; i < this.players.length; i++) {
+            if (this.players[i].pid == pid) {
+                p = this.players[i];
+                break;
+            }
+        }
+
+        if (p == null) {
+            for (var i = 0; i < this.players.length; i++) {
+                if (this.players[i].pid == pid) {
+                    p = this.spectators[i];
+                    break;
+                }
+            }
+        }
+
+        return p;
+    }
+
+    public onPlayerEnter(data: any, _this: PlayState): void {
+        var p: Player = Util.convertPlayerData(data.player[0]);
+        if (data.spectate == true || data.spectate == "true")
+            MyEvent.call(Signal.TEXT, { text: p.name + " 前来贴窗", pid: 0 });
+        else
+            MyEvent.call(Signal.TEXT, { text: p.name + " 进入了房间", pid: 0 });
+        if (data.player[0].pid == Main.me.pid)
+            return;
+        _this.addOnePlayer(p, data.spectate);
+    }
+
+    public onPlayerLeave(data: any, _this: PlayState): void {
+        var p: Player = _this.getPlayerByPid(data.pid);
+        if (p != null) {
+            MyEvent.call(Signal.TEXT, { text: p.name + " 离开了房间", pid: 0 });
+            _this.removeOnePlayer(p.pid);
+        }
+    }
+
+    public addOnePlayer(p: Player, isSpector: any): void {
+        if (isSpector == true || isSpector == "true") {
+            this.spectators.push(p);
+        } else {
+            this.players.push(p);
+        }
+        this.updatePlayerList();
+    }
+
+    public removeOnePlayer(pid: number): void {
+        var index: number = -1;
+        for (var i = 0; i < this.players.length; i++) {
+            if (this.players[i].pid == pid) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index != -1) {
+            this.players.splice(index, 1);
+            this.updatePlayerList();
+        } else {
+            for (var i = 0; i < this.spectators.length; i++) {
+                if (this.players[i].pid == pid) {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index != -1) {
+                this.spectators.splice(index, 1);
+                this.updatePlayerList();
+            }
+        }
+    }
+
+    public updatePlayerList(): void {
+        var ele: any = jQuery("#gamePage #playerArea");
+        var elesp: any = jQuery("#gamePage #spectateArea");
+        ele.empty();
+        elesp.empty();
+        for (var i = 0; i < this.players.length; i++) {
+            var p: Player = this.players[i];
+            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar"> 裁判 </div></div>');
+        }
+
+        for (var i = 0; i < this.spectators.length; i++) {
+            var p: Player = this.spectators[i];
+            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div></div>');
+        }
+    }
+
+    public onReceiveText(data: any, _this: PlayState): void {
+        var pid: any = parseInt(data.pid);
+        var speakerName: string = "Unknow";
+        if (isNaN(data.pid)) {
+            speakerName = data.pid;
+        } else if (pid == 0) {
+            speakerName = "系统";
+        } else {
+            var p: Player = _this.getPlayerByPid(pid);
+            if (p != null)
+                speakerName = p.name;
+        }
+
+        var text: string = data.text;
+        if (pid == 0)
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
+        else
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
+
+        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+    }
+
+    public onSendText(data: any, _this: PlayState): void {
+        var $text: any = jQuery("#gamePage #inputArea #inputbox")[0];
+        var text: string = $text.value.trim();
+        if (text == null || text.length == 0 || text.length > 200) return;
+        Server.instance.send(PackageBuilder.buildTextPackage(text), true, true);
+        $text.value = "";
+    }
 }
 
 window.onload = () => {

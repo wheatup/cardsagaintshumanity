@@ -5,8 +5,7 @@ import java.util.Set;
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 
-public class Round {
+public class Round extends PlayerContainer{
 	private int id;
 	private BlackCard blackCard;
-	private Set<Player> players;
 }

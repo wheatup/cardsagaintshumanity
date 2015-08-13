@@ -65,12 +65,12 @@ public abstract class PlayerContainer {
 		return player;
 	}
 	
-	public void addPlayer(Player player){
+	protected void addPlayer(Player player){
 		players.put(player.getSession(), player);
 		player.setContainer(this);
 	}
 	
-	public void removePlayer(Player player){
+	protected void removePlayer(Player player){
 		players.remove(player.getSession());
 	}
 	

@@ -20,7 +20,9 @@ import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.game.GameWorld;
 import cc.cafebabe.cardagainsthumanity.game.Lobby;
 import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
+import cc.cafebabe.cardagainsthumanity.game.Room;
 import cc.cafebabe.cardagainsthumanity.server.Server;
+import cc.cafebabe.cardagainsthumanity.service.CardsService;
 
 public class Json2Map
 {
@@ -198,6 +200,23 @@ public class Json2Map
 		return map;
 	}
 	
+	public static Map<String, Object> buildRoomInfo(Room room){
+		Map<String, Object> map = BuildMapByType(MessageType.ROOMINFO);
+		map.put("players", room.buildPlayersInfo());
+		map.put("spectators", room.buildSpectatorsInfo());
+		map.put("id", room.getId());
+		map.put("name", room.getName());
+		if(room.getCardpacks() != null){
+			String cardpacks = "";
+			for(int i : room.getCardpacks()){
+				cardpacks+=CardsService.cardpacks.get(i) + ",";
+			}
+			cardpacks = cardpacks.substring(0, cardpacks.length() - 1);
+			map.put("cardpacks", cardpacks);
+		}
+		return map;
+	}
+	
 	public static Map<String, Object> buildPlayerLeaveInfo(long pid){
 		Map<String, Object> map = BuildMapByType(MessageType.PLAYERLEAVE);
 		map.put("pid", pid);
@@ -209,6 +228,15 @@ public class Json2Map
 		HashMapArray hma = new HashMapArray();
 		hma.addMap(player.buildPlayerInfo());
 		map.put("player", hma);
+		return map;
+	}
+	
+	public static Map<String, Object> buildPlayerEnterInfo(Player player, boolean spectate){
+		Map<String, Object> map = BuildMapByType(MessageType.PLAYERENTER);
+		HashMapArray hma = new HashMapArray();
+		hma.addMap(player.buildPlayerInfo());
+		map.put("player", hma);
+		map.put("spectate", spectate);
 		return map;
 	}
 }

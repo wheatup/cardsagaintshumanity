@@ -26,6 +26,11 @@ public class GameWorld extends PlayerContainer{
 	public void removePlayerFromWorld(Player player){
 		if(player.getRoomNumber() == 0){
 			lobby.removePlayerFromLobby(player);
+		}else{
+			Room room = lobby.getRoom(player.getRoomNumber());
+			if(room != null){
+				room.removePlayerFromRoom(player);
+			}
 		}
 		removePlayer(player);
 		System.out.println("ÓÃ»§ÍË³ö:" + player.getName());

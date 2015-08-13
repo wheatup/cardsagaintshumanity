@@ -9,6 +9,7 @@ import javax.websocket.Session;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
+import cc.cafebabe.cardagainsthumanity.game.Room;
 import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
@@ -153,6 +154,21 @@ public class TaskHandler implements Runnable {
 			PlayerContainer container = player.getContainer();
 			if(container == null) return;
 			container.broadcastMessage(Json2Map.BuildTextMessage(player.getPid(), text));
+		}
+		//接收到创建房间消息
+		else if(key.equals("createroom")){
+			int code = Server.gameWorld.getLobby().createRoom();
+			if(code == -1){
+				player.sendMessage(Json2Map.BuildFlagMessage("toomanyroom"));
+			}else{
+				Room room = Server.gameWorld.getLobby().getRoom(code);
+				if(room != null){
+					int rcode = room.sendPlayerInRoom(player);
+					if(rcode != 2){
+						Server.gameWorld.getLobby().removePlayerFromLobby(player);
+					}
+				}
+			}
 		}
 	}
 	

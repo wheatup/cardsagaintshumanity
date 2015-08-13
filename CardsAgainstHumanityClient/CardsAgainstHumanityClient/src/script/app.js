@@ -113,6 +113,11 @@ var Player = (function () {
     };
     return Player;
 })();
+var Room = (function () {
+    function Room() {
+    }
+    return Room;
+})();
 var Util = (function () {
     function Util() {
     }
@@ -160,6 +165,9 @@ var Util = (function () {
         text = text.replace(/'/g, "\\'");
         text = text.replace(/\\/g, "\\\\");
         return text;
+    };
+    Util.showMessage = function (text) {
+        MyEvent.call(Signal.TEXT, { text: text, pid: 0 });
     };
     return Util;
 })();
@@ -259,6 +267,10 @@ var PackageBuilder = (function () {
         var pack = '{"t":"quit"}';
         return pack;
     };
+    PackageBuilder.buildCreateRoomPackage = function () {
+        var pack = '{"t":"createroom"}';
+        return pack;
+    };
     return PackageBuilder;
 })();
 var MessageAnalysis = (function () {
@@ -288,6 +300,8 @@ var Signal = (function () {
     Signal.PLAYERLEAVE = "playerleave";
     Signal.TEXT = "text";
     Signal.SendText = "sendtext";
+    Signal.RoomInfo = "roominfo";
+    Signal.ONCLICKCREATEROOM = "ONCLICKCREATEROOM";
     return Signal;
 })();
 var Main = (function () {
@@ -307,8 +321,7 @@ var Main = (function () {
         Main.loginState = new LoginState();
         Main.lobbyState = new LobbyState();
         Main.playState = new PlayState();
-        //Main.loginState.start();
-        Main.playState.showGamePage(null);
+        Main.loginState.start();
     };
     Main.freeze = false;
     return Main;
@@ -432,6 +445,7 @@ var LoginState = (function () {
 })();
 var LobbyState = (function () {
     function LobbyState() {
+        this.canCreateRoom = false;
     }
     LobbyState.prototype.getPlayerByPid = function (pid) {
         var p = null;
@@ -443,35 +457,46 @@ var LobbyState = (function () {
         }
         return p;
     };
+    LobbyState.prototype.clearLobbyPage = function () {
+        jQuery("#roomArea").empty();
+        jQuery("#chatArea #messages").empty();
+        jQuery("#playersArea").empty();
+    };
     LobbyState.prototype.showLobbyPage = function (myinfo) {
+        //this.clearLobbyPage();
         this.bindEvents();
         jQuery("#lobbyPage").show();
         this.clearChatArea();
         this.getMyInfo(myinfo);
+        this.canCreateRoom = true;
     };
     LobbyState.prototype.bindEvents = function () {
         MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
         MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
         MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
         MyEvent.bind(Signal.SendText, this.onSendText, this);
-        jQuery('#inputArea #inputbox').keypress(function (event) {
+        jQuery('#lobbyPage #inputArea #inputbox').keypress(function (event) {
             var keycode = (event.keyCode ? event.keyCode : event.which);
             if (keycode == '13') {
                 MyEvent.call(Signal.SendText);
             }
         });
-        jQuery('#inputArea #submit').tapOrClick(function (event) {
+        jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
             MyEvent.call(Signal.SendText);
         });
+        jQuery("#settingsArea #createRoom").tapOrClick(function () { MyEvent.call(Signal.ONCLICKCREATEROOM); });
+        MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom, this);
+        MyEvent.bind(Signal.RoomInfo, this.onReceiveRoomInfo, this);
     };
     LobbyState.prototype.unbindEvents = function () {
         MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
         MyEvent.unbind(Signal.PLAYERLEAVE, this.onPlayerLeave);
         MyEvent.unbind(Signal.TEXT, this.onReceiveText);
         MyEvent.unbind(Signal.SendText, this.onSendText);
+        MyEvent.unbind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
     };
     LobbyState.prototype.onSendText = function () {
-        var $text = jQuery("#inputArea #inputbox")[0];
+        var $text = jQuery("#lobbyPage #inputArea #inputbox")[0];
         var text = $text.value.trim();
         if (text == null || text.length == 0 || text.length > 200)
             return;
@@ -480,6 +505,14 @@ var LobbyState = (function () {
     };
     LobbyState.prototype.getMyInfo = function (data) {
         this.updateMyInfo(data);
+    };
+    LobbyState.prototype.onClickCreateRoom = function (data, _this) {
+        if (!_this.canCreateRoom) {
+            Util.showMessage("您现在不能创建房间！");
+            return;
+        }
+        Server.instance.send(PackageBuilder.buildCreateRoomPackage(), true, true);
+        _this.canCreateRoom = false;
     };
     LobbyState.prototype.getLobbyInfo = function (data) {
         this.players = new Array();
@@ -558,19 +591,213 @@ var LobbyState = (function () {
         }
     };
     LobbyState.prototype.updatePlayerList = function () {
-        var ele = jQuery("#playersArea");
+        var ele = jQuery("#lobbyPage #playersArea");
         ele.empty();
         for (var i = 0; i < this.players.length; i++) {
             ele.append('<div class="player" title="pid:' + this.players[i].pid + '" id="' + this.players[i].pid + '"><span id="level">Lv.' + this.players[i].getLevel() + '</span><span id="name">' + this.players[i].name + '</span></div>');
         }
     };
+    LobbyState.prototype.onReceiveRoomInfo = function (data, _this) {
+        jQuery("#lobbyPage").hide();
+        Main.playState.showGamePage(data);
+        _this.unbindEvents();
+    };
     return LobbyState;
 })();
 var PlayState = (function () {
     function PlayState() {
+        this.players = new Array();
+        this.spectators = new Array();
     }
     PlayState.prototype.showGamePage = function (data) {
+        this.bindEvents();
+        this.clearGamePage();
         jQuery("#gamePage").show();
+        this.showBlackCardArea();
+        this.initRoomInfo(data);
+        this.updateMyInfoDisplay();
+        //jQuery(".settingsPage[id=gamestart]").show();
+    };
+    PlayState.prototype.initRoomInfo = function (data) {
+        jQuery("#gamePage #roomnum").html(data.id);
+        jQuery("#gamePage #roomname").html(data.name);
+        for (var i = 0; i < data.players.length; i++) {
+            var p = Util.convertPlayerData(data.players[i]);
+            this.addOnePlayer(p, false);
+        }
+        for (var i = 0; i < data.spectators.length; i++) {
+            var p = Util.convertPlayerData(data.spectators[i]);
+            this.addOnePlayer(p, true);
+        }
+    };
+    PlayState.prototype.bindEvents = function () {
+        MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
+        MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
+        MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
+        MyEvent.bind(Signal.SendText, this.onSendText, this);
+        jQuery('#gamePage #inputArea #inputbox').keypress(function (event) {
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if (keycode == '13') {
+                MyEvent.call(Signal.SendText);
+            }
+        });
+        jQuery('#gamePage #inputArea #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.SendText);
+        });
+    };
+    PlayState.prototype.unbindEvents = function () {
+        MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
+        MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
+        MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
+        MyEvent.bind(Signal.SendText, this.onSendText, this);
+    };
+    PlayState.prototype.clearGamePage = function () {
+        jQuery("#roominfo #roomnum").empty();
+        jQuery("#roominfo #roomname").empty();
+        jQuery("#roominfo #roomname").empty();
+        jQuery("#blackCardArea #blackCard").empty();
+        jQuery("#timerArea #timerFill").css("width", "0%");
+        jQuery("#chatArea #messages").empty();
+        jQuery("#tableArea #table").empty();
+        jQuery("#handArea #hand").empty();
+        jQuery("#rightArea #playerArea").empty();
+        jQuery("#rightArea #spectateArea").empty();
+    };
+    PlayState.prototype.showHostSettings = function () {
+        jQuery("#blackCardArea #blackCard").hide();
+        jQuery("#blackCardArea #hostSettings").show();
+    };
+    PlayState.prototype.showBlackCardArea = function () {
+        jQuery("#blackCardArea #blackCard").show();
+        jQuery("#blackCardArea #hostSettings").hide();
+    };
+    PlayState.prototype.updateMyInfoDisplay = function () {
+        var level = Main.me.getLevel();
+        var remainExp = Main.me.getRemainExp();
+        var needExp = Main.me.getNeedExp();
+        jQuery("#gamePage #statArea #nameTag").html(Main.me.name);
+        jQuery("#gamePage #statArea #nameTag").attr("title", "pid:" + Main.me.pid);
+        jQuery("#gamePage #statArea #level").html("Lv." + level);
+        jQuery("#gamePage #statArea #levelBarExp").html(remainExp + "/" + needExp);
+        jQuery("#gamePage #statArea #credit #content").html(Main.me.credit);
+        jQuery("#gamePage #statArea #fish #content").html(Main.me.fish);
+        jQuery("#gamePage #statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
+    };
+    PlayState.prototype.updateMyInfo = function (data) {
+        Main.me = Util.convertPlayerData(data.info[0]);
+        this.updateMyInfoDisplay();
+    };
+    PlayState.prototype.getPlayerByPid = function (pid) {
+        var p = null;
+        for (var i = 0; i < this.players.length; i++) {
+            if (this.players[i].pid == pid) {
+                p = this.players[i];
+                break;
+            }
+        }
+        if (p == null) {
+            for (var i = 0; i < this.players.length; i++) {
+                if (this.players[i].pid == pid) {
+                    p = this.spectators[i];
+                    break;
+                }
+            }
+        }
+        return p;
+    };
+    PlayState.prototype.onPlayerEnter = function (data, _this) {
+        var p = Util.convertPlayerData(data.player[0]);
+        if (data.spectate == true || data.spectate == "true")
+            MyEvent.call(Signal.TEXT, { text: p.name + " 前来贴窗", pid: 0 });
+        else
+            MyEvent.call(Signal.TEXT, { text: p.name + " 进入了房间", pid: 0 });
+        if (data.player[0].pid == Main.me.pid)
+            return;
+        _this.addOnePlayer(p, data.spectate);
+    };
+    PlayState.prototype.onPlayerLeave = function (data, _this) {
+        var p = _this.getPlayerByPid(data.pid);
+        if (p != null) {
+            MyEvent.call(Signal.TEXT, { text: p.name + " 离开了房间", pid: 0 });
+            _this.removeOnePlayer(p.pid);
+        }
+    };
+    PlayState.prototype.addOnePlayer = function (p, isSpector) {
+        if (isSpector == true || isSpector == "true") {
+            this.spectators.push(p);
+        }
+        else {
+            this.players.push(p);
+        }
+        this.updatePlayerList();
+    };
+    PlayState.prototype.removeOnePlayer = function (pid) {
+        var index = -1;
+        for (var i = 0; i < this.players.length; i++) {
+            if (this.players[i].pid == pid) {
+                index = i;
+                break;
+            }
+        }
+        if (index != -1) {
+            this.players.splice(index, 1);
+            this.updatePlayerList();
+        }
+        else {
+            for (var i = 0; i < this.spectators.length; i++) {
+                if (this.players[i].pid == pid) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index != -1) {
+                this.spectators.splice(index, 1);
+                this.updatePlayerList();
+            }
+        }
+    };
+    PlayState.prototype.updatePlayerList = function () {
+        var ele = jQuery("#gamePage #playerArea");
+        var elesp = jQuery("#gamePage #spectateArea");
+        ele.empty();
+        elesp.empty();
+        for (var i = 0; i < this.players.length; i++) {
+            var p = this.players[i];
+            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar"> 裁判 </div></div>');
+        }
+        for (var i = 0; i < this.spectators.length; i++) {
+            var p = this.spectators[i];
+            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div></div>');
+        }
+    };
+    PlayState.prototype.onReceiveText = function (data, _this) {
+        var pid = parseInt(data.pid);
+        var speakerName = "Unknow";
+        if (isNaN(data.pid)) {
+            speakerName = data.pid;
+        }
+        else if (pid == 0) {
+            speakerName = "系统";
+        }
+        else {
+            var p = _this.getPlayerByPid(pid);
+            if (p != null)
+                speakerName = p.name;
+        }
+        var text = data.text;
+        if (pid == 0)
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
+        else
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
+        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+    };
+    PlayState.prototype.onSendText = function (data, _this) {
+        var $text = jQuery("#gamePage #inputArea #inputbox")[0];
+        var text = $text.value.trim();
+        if (text == null || text.length == 0 || text.length > 200)
+            return;
+        Server.instance.send(PackageBuilder.buildTextPackage(text), true, true);
+        $text.value = "";
     };
     return PlayState;
 })();

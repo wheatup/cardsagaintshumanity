@@ -73,6 +73,8 @@
 
 #gamePage #leftArea #blackCardArea{width: 240px; height:144px;}
 #gamePage #leftArea #blackCardArea #blackCard{width: 236px; height:130px; background-color:#111; padding:5px; border:solid 2px #555; margin-top:10px;  font-size:18px; word-break:break-all;}
+#gamePage #leftArea #blackCardArea #hostSettings #cardpacks{width: 236px; height:90px; background-color:#666; padding:5px; border:solid 2px #888; margin-top:10px; overflow-x:hidden; overflow-y:scroll;}
+#gamePage #leftArea #blackCardArea #hostSettings #startGame{margin-top:5px; width:236px;}
 
 #gamePage #leftArea #timerArea{width: 240px; height:20px; margin-top:5px; }
 #gamePage #leftArea #timerArea #timerBack{width: 246px; height:20px; background-color:#999; border:solid 2px #555;}
@@ -80,11 +82,11 @@
 
 #gamePage #leftArea #statArea{width:246px; height:122px; margin-top:10px; background-color:#888; border:solid 2px #555; color:#222;}
 #gamePage #leftArea #statArea #nameTag{height:24px; background-color:#555; font-weight:bold; text-align:center; font-size:18px; line-height:24px; color:#fff; overflow:hidden;}
-#gamePage #leftArea #statArea #levelinfo{height:20px;  overflow:visible;}
+#gamePage #leftArea #statArea #levelinfo{height:50px;  overflow:visible;}
 #gamePage #leftArea #statArea #levelinfo #level{font-size:16px; font-weight:bold; text-align:center;}
 #gamePage #leftArea #statArea #levelinfo #levelBarArea{width:226px; margin-left:10px;}
 #gamePage #leftArea #statArea #levelinfo #levelBarArea #levelBarBack{display:block; float:left; background-color:#333; width:90%; height:24px; text-align:center; margin-bottom:3px;}
-#gamePage #leftArea #statArea #levelinfo #levelBarArea #levelBarExp{color:white; display:block; float:left; line-height:20px; border:solid 2px #aaa; position:absolute; z-index:1; width:224px; height:20px; text-align:center;}
+#gamePage #leftArea #statArea #levelinfo #levelBarArea #levelBarExp{color:white; display:block; line-height:20px; border:solid 2px #aaa; position:absolute; z-index:1; width:224px; height:20px; text-align:center;}
 #gamePage #leftArea #statArea #title{height: 22px; display:inline-block; width:60px; vertical-align:top; text-align:right;}
 #gamePage #leftArea #statArea #content{height: 22px; color:#222; font-weight:bold; margin-left:10px;  vertical-align:top;}
 
@@ -95,7 +97,7 @@
 #gamePage #leftArea #chatArea #messages #content{color:#fff;}
 #gamePage #leftArea #chatArea #messages #content img{max-width:100%; height:auto;}
 #gamePage #leftArea #chatArea #inputArea{width:246px; height:24px; background-color:#888; border:solid 2px #555; margin-top:6px;}
-#gamePage #leftArea #chatArea #inputArea #inputbox{float:left; width:120px; height:20px; background-color:#888; border:0; margin:1px;}
+#gamePage #leftArea #chatArea #inputArea #inputbox{float:left; width:180px; height:20px; background-color:#888; border:0; margin:1px;}
 #gamePage #leftArea #chatArea #inputArea #submit{float:right; width:60px; height:24px; padding:0px; border:0;}
 
 #gamePage #tableArea{float:left; width:230px; height:620px; padding:10px; margin-left:10px;}
@@ -119,3 +121,27 @@
 #gamePage #handArea #hand .cards img{max-height:100%; width:auto;}
 #gamePage #handArea #hand .cards #whitecard{float:left; height:47.5px; width:232px; color:#111; background-color:#eee; border:solid 2px #555; overflow:hidden; text-align:center;}
 #gamePage #handArea #hand .cards:hover #whitecard{background-color:#555; color:white; cursor:pointer; border:solid 2px #ddd;}
+
+#gamePage #rightArea{float:left; width:218px; height:620px; padding:10px; margin-left:10px;}
+#gamePage #rightArea #playerArea{width:208px; height:442px; background-color:#888; border:solid 2px #555; text-align:center; padding:5px;}
+#gamePage #rightArea #playerArea .player{width:201px; height:43px; background-color:#555; border:solid 2px #333; padding:2px; margin-top:5px; text-align:left;}
+#gamePage #rightArea #playerArea .player:first-child{margin-top:0px;}
+#gamePage #rightArea #playerArea .player:hover {background-color:#777; border:solid 2px #555; color:#fff; cursor:pointer;}
+#gamePage #rightArea #playerArea .player #name{clear:both; margin-left:5px;}
+#gamePage #rightArea #playerArea .player #level{float:left; width:80px; margin-left:5px;}
+#gamePage #rightArea #playerArea .player #score{float:left; width:30px; margin-left:5px;}
+#gamePage #rightArea #playerArea .player #title{float:right; width:50px; background-color:#333; text-align:center;}
+
+#gamePage #rightArea #spectateArea{width:208px; height:100px; background-color:#888; border:solid 2px #555; text-align:center; padding:5px; overflow-y:scroll; overflow-x:hidden; margin-top:5px;}
+#gamePage #rightArea #spectateArea .player{width:180px; height:23px; background-color:#555; border:solid 2px #333; padding:2px; margin-top:5px; text-align:left; overflow:hidden;}
+#gamePage #rightArea #spectateArea .player:first-child{margin-top:0px;}
+#gamePage #rightArea #spectateArea .player:hover {background-color:#777; border:solid 2px #555; color:#fff; cursor:pointer;}
+#gamePage #rightArea #spectateArea .player #name{float:left; margin-left:5px;}
+
+#gamePage #rightArea #settingsArea{width:222px; height:39px; text-align:center; margin-top:5px;}
+#gamePage #rightArea #settingsArea div{float:left; height:26px; line-height:26px; width:56px; margin-left:5px;}
+#gamePage #rightArea #settingsArea div:first-child{margin-left:0px;}
+
+.settingsPage{display:none; position:absolute; z-index:10; background-color:#888; border:solid 2px #333; margin:auto; left:0px; top:0px; right:0px; bottom:0px; color:black;}
+
+#gamestart{width:500px; height:300px;}
