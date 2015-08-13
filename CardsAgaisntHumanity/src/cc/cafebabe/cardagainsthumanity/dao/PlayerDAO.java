@@ -29,7 +29,7 @@ public class PlayerDAO
 		    //如果不存在则创建表
 		    if(BaseDAO.resetMode || !exist){
 		    	stat.executeUpdate("drop table if exists player;");
-			    stat.executeUpdate("create table player (pid INTEGER PRIMARY KEY AUTOINCREMENT, name NVARCHAR(20) NOT NULL, password VARCHAR(20) NOT NULL, regtime DATETIME NOT NULL, state NUMBER(1) NOT NULL, logtime DATETIME);");
+			    stat.executeUpdate("create table player (pid INTEGER PRIMARY KEY AUTOINCREMENT, name NVARCHAR(20) NOT NULL, password VARCHAR(20) NOT NULL, regtime DATETIME NOT NULL, state NUMBER(1) NOT NULL, logtime DATETIME, regip VARCHAR(16));");
 			    stat.executeUpdate("CREATE INDEX idx_pid ON player(pid);");
 			    //BaseDAO.playersDB.commit();
 		    }
@@ -40,15 +40,16 @@ public class PlayerDAO
 		}
 	}
 	
-	public static Player createPlayer(String username, String password, int state){
+	public static Player createPlayer(String username, String password, String ip, int state){
 		Player player = null;
 	    PreparedStatement prep;
 		try
 		{
-			prep = BaseDAO.playersDB.prepareStatement("insert into player values (null, ?, ?, datetime('now'), ?, datetime('now'));");
+			prep = BaseDAO.playersDB.prepareStatement("insert into player values (null, ?, ?, datetime('now'), ?, datetime('now'), ?);");
 			prep.setString(1, username.trim());
 		    prep.setString(2, password);
 		    prep.setInt(3, state);
+		    prep.setString(4, ip);
 		    prep.executeUpdate();
 		    long pid = PlayerDAO.getPidByName(username);
 		    GameDataService.createGameData(pid);
@@ -209,5 +210,26 @@ public class PlayerDAO
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	public static int getRegPlayersCount(String ip){
+		int count = 0;
+		PreparedStatement prep;
+		try
+		{
+			prep = BaseDAO.playersDB.prepareStatement("select count(pid) cnt from player where regip = ?;");
+			prep.setString(1, ip);
+		    ResultSet rs = prep.executeQuery();
+		    if(rs.next()){
+		    	count = rs.getInt("cnt");
+		    }
+		    rs.close();
+		    prep.close();
+		}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+		}
+		return count;
 	}
 }

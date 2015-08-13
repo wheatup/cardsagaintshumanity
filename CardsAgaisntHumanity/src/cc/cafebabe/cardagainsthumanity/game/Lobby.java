@@ -32,9 +32,11 @@ public class Lobby extends PlayerContainer{
 		addPlayer(player);
 		player.sendMessage(Json2Map.buildLobbyInfo(this));
 		player.setRoomNumber(0);
+		broadcastMessage(Json2Map.buildPlayerEnterInfo(player));
 	}
 	
 	public void removePlayerFromLobby(Player player){
 		removePlayer(player);
+		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
 	}
 }

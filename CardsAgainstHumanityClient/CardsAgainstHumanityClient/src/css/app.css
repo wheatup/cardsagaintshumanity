@@ -58,7 +58,60 @@
 
 #lobbyPage #rightArea {float:right; width:290px; height:616px; margin:10px 10px 10px 0px;}
 #lobbyPage #rightArea #playersArea {width:286px; height:480px; background-color:#888; border:solid 2px #555;  overflow-x:hidden; overflow-y:scroll;}
-#lobbyPage #rightArea #playersArea .player{ overflow:hidden; height:26px; background-color:#ddd; margin:5px; padding:5px; line-height:26px; text-align:center; color:#333; font-weight:bold; border:solid 2px #444;}
+#lobbyPage #rightArea #playersArea .player{ overflow:hidden; height:26px; background-color:#ddd; margin:5px; padding:5px; line-height:26px; color:#333; font-weight:bold; border:solid 2px #444;}
+#lobbyPage #rightArea #playersArea .player #level{display:inline-block; width:50px; }
+#lobbyPage #rightArea #playersArea .player #name{display:inline-block; width:190px; text-align:center;}
 
 #lobbyPage #rightArea #settingsArea {width:286px; height:122px; background-color:#888; border:solid 2px #555; margin-top:10px;}
-#lobbyPage #rightArea #settingsArea .button {display:inline-block; width:118px; margin:5px 0px 0px 5px; border:solid 2px #444;}
+#lobbyPage #rightArea #settingsArea .button {display:inline-block; width:118px; margin:4px 0px 0px 5px; border:solid 2px #444;}
+
+#gamePage{}
+#gamePage #leftArea{float:left; width:230px; height:620px; padding:10px;}
+#gamePage #leftArea #roominfo{width:246px; height:30px; background-color:#888; border:solid 2px #555;}
+#gamePage #leftArea #roominfo #roomnum{display:inline-block; line-height:30px; font-weight:bold; width:50px; height:30px; text-align:center; vertical-align:top;}
+#gamePage #leftArea #roominfo #roomname{display:inline-block; line-height:30px; font-weight:bold; width:190px; height:30px; text-align:left; overflow:hidden; word-break:keep-all;}
+
+#gamePage #leftArea #blackCardArea{width: 240px; height:144px;}
+#gamePage #leftArea #blackCardArea #blackCard{width: 236px; height:130px; background-color:#111; padding:5px; border:solid 2px #555; margin-top:10px;  font-size:18px; word-break:break-all;}
+
+#gamePage #leftArea #statArea{width:246px; height:122px; margin-top:10px; background-color:#888; border:solid 2px #555; color:#222;}
+#gamePage #leftArea #statArea #nameTag{height:24px; background-color:#555; font-weight:bold; text-align:center; font-size:18px; line-height:24px; color:#fff; overflow:hidden;}
+#gamePage #leftArea #statArea #levelinfo{height:20px;  overflow:visible;}
+#gamePage #leftArea #statArea #levelinfo #level{font-size:16px; font-weight:bold; text-align:center;}
+#gamePage #leftArea #statArea #levelinfo #levelBarArea{width:226px; margin-left:10px;}
+#gamePage #leftArea #statArea #levelinfo #levelBarArea #levelBarBack{display:block; float:left; background-color:#333; width:90%; height:24px; text-align:center; margin-bottom:3px;}
+#gamePage #leftArea #statArea #levelinfo #levelBarArea #levelBarExp{color:white; display:block; float:left; line-height:20px; border:solid 2px #aaa; position:absolute; z-index:1; width:224px; height:20px; text-align:center;}
+#gamePage #leftArea #statArea #title{height: 22px; display:inline-block; width:60px; vertical-align:top; text-align:right;}
+#gamePage #leftArea #statArea #content{height: 22px; color:#222; font-weight:bold; margin-left:10px;  vertical-align:top;}
+
+#gamePage #leftArea #chatArea{width:250px; height:286px; margin-top:10px;}
+#gamePage #leftArea #chatArea #messages{width:236px; height:238px; background-color:#888; border:solid 2px #555; overflow-x:hidden; overflow-y:scroll; padding:5px;}
+#gamePage #leftArea #chatArea #messages #server{color:#444; font-weight:bold;}
+#gamePage #leftArea #chatArea #messages #name{color:#ccc; font-weight:bold;}
+#gamePage #leftArea #chatArea #messages #content{color:#fff;}
+#gamePage #leftArea #chatArea #messages #content img{max-width:100%; height:auto;}
+#gamePage #leftArea #chatArea #inputArea{width:246px; height:24px; background-color:#888; border:solid 2px #555; margin-top:6px;}
+#gamePage #leftArea #chatArea #inputArea #inputbox{float:left; width:120px; height:20px; background-color:#888; border:0; margin:1px;}
+#gamePage #leftArea #chatArea #inputArea #submit{float:right; width:60px; height:24px; padding:0px; border:0;}
+
+#gamePage #tableArea{float:left; width:230px; height:620px; padding:10px; margin-left:10px;}
+#gamePage #tableArea #tableTitle{width:246px; height:30px; background-color:#888; border:solid 2px #555; text-align:center; line-height:30px; font-weight:bold;}
+#gamePage #tableArea #table{width:246px; height:572px; margin-top:10px; border:solid 2px #555; background-color:#888;}
+#gamePage #tableArea #table .cards{width:236px; height:76px; overflow:hidden; margin:5px;}
+#gamePage #tableArea #table .cards img{max-height:100%; width:auto;}
+#gamePage #tableArea #table #whitecard{float:left; height:72px; color:#111; background-color:#eee; border:solid 2px #555; overflow:hidden; text-align:center;}
+#gamePage #tableArea #table #pack3 #whitecard{width:71px; margin-left:5px;}
+#gamePage #tableArea #table #pack3 #whitecard:first-child{margin-left:0px;}
+#gamePage #tableArea #table #pack2 #whitecard{width:111px; margin-left:5px;}
+#gamePage #tableArea #table #pack2 #whitecard:first-child{margin-left:0px;}
+#gamePage #tableArea #table #pack1 #whitecard{width:232px;}
+
+#gamePage #tableArea #table .cards:hover #whitecard{background-color:#555; color:white; cursor:pointer; border:solid 2px #ddd;}
+
+#gamePage #handArea{float:left; width:230px; height:620px; padding:10px; margin-left:10px;}
+#gamePage #handArea #handTitle{width:246px; height:30px; background-color:#888; border:solid 2px #555; text-align:center; line-height:30px; font-weight:bold;}
+#gamePage #handArea #hand{width:246px; height:572px; margin-top:10px; border:solid 2px #555; background-color:#888;}
+#gamePage #handArea #hand .cards{width:236px; height:51.5px; overflow:hidden; margin:5px;}
+#gamePage #handArea #hand .cards img{max-height:100%; width:auto;}
+#gamePage #handArea #hand .cards #whitecard{float:left; height:47.5px; width:232px; color:#111; background-color:#eee; border:solid 2px #555; overflow:hidden; text-align:center;}
+#gamePage #handArea #hand .cards:hover #whitecard{background-color:#555; color:white; cursor:pointer; border:solid 2px #ddd;}

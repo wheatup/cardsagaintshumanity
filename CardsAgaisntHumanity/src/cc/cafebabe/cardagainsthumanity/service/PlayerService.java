@@ -9,7 +9,7 @@ public class PlayerService
 		return PlayerDAO.getPidByName(name) != -1;
 	}
 	
-	public static Player logOrRegPlayer(String name, String password){
+	public static Player logOrRegPlayer(String name, String password, String ip){
 		if(isPlayerRegisted(name)){
 			Player player = PlayerDAO.getPlayer(name);
 			if(player == null) return null;
@@ -23,8 +23,12 @@ public class PlayerService
 				return null;
 			}
 		}else{
+			if(PlayerDAO.getRegPlayersCount(ip) >= 5){
+				return null;
+			}
 			System.out.println("×¢²áÓÃ»§:" + name);
-			Player player = PlayerDAO.createPlayer(name, password, 0);
+			
+			Player player = PlayerDAO.createPlayer(name, password, ip, 0);
 			player.setFirstLogin(true);
 			player.setLastMessageTime(System.currentTimeMillis());
 			return player;

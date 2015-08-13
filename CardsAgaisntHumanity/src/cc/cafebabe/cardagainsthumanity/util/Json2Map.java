@@ -127,10 +127,10 @@ public class Json2Map
 		return BuildTextMessage(-1, msg);
 	}
 	
-	public static Map<String, Object> BuildTextMessage(long id, String msg)
+	public static Map<String, Object> BuildTextMessage(long pid, String msg)
 	{
 		Map<String, Object> map = BuildMapByType(MessageType.TEXT);
-		map.put("id", id);
+		map.put("pid", pid);
 		map.put("text", msg);
 		return map;
 	}
@@ -164,6 +164,12 @@ public class Json2Map
 		case MYINFO:
 			map.put("t", "myinfo");
 			break;
+		case PLAYERLEAVE:
+			map.put("t", "playerleave");
+			break;
+		case PLAYERENTER:
+			map.put("t", "playerenter");
+			break;
 		default:
 			map.put("t", "d");
 			break;
@@ -189,6 +195,20 @@ public class Json2Map
 	public static Map<String, Object> buildLobbyInfo(Lobby lobby){
 		Map<String, Object> map = BuildMapByType(MessageType.LOBBYINFO);
 		map.put("players", lobby.buildPlayersInfo());
+		return map;
+	}
+	
+	public static Map<String, Object> buildPlayerLeaveInfo(long pid){
+		Map<String, Object> map = BuildMapByType(MessageType.PLAYERLEAVE);
+		map.put("pid", pid);
+		return map;
+	}
+	
+	public static Map<String, Object> buildPlayerEnterInfo(Player player){
+		Map<String, Object> map = BuildMapByType(MessageType.PLAYERENTER);
+		HashMapArray hma = new HashMapArray();
+		hma.addMap(player.buildPlayerInfo());
+		map.put("player", hma);
 		return map;
 	}
 }

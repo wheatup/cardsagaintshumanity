@@ -67,6 +67,7 @@ public abstract class PlayerContainer {
 	
 	public void addPlayer(Player player){
 		players.put(player.getSession(), player);
+		player.setContainer(this);
 	}
 	
 	public void removePlayer(Player player){

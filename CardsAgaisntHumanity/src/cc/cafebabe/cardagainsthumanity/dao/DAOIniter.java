@@ -20,7 +20,7 @@ public class DAOIniter
 	
 	private static void initData(){
 		long startTime = System.currentTimeMillis();
-		PlayerService.logOrRegPlayer("admin", "oipoi123zxc");
+		PlayerService.logOrRegPlayer("admin", "oipoi123zxc", "0.0.0.0");
 		CardsService.addCardPack("基本卡牌包", 0);
 		CardsService.addCardPack("基本卡牌包EX", 5);
 		CardsService.addBlackCard(1, "测试黑卡%b1。", "基本卡牌包");

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import javax.websocket.Session;
 
+import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
 import cc.cafebabe.cardagainsthumanity.service.GameDataService;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
@@ -20,7 +21,16 @@ public class Player
 	private int state;
 	private GameData gameData;
 	private Session session;
-	
+	private PlayerContainer container;
+	public PlayerContainer getContainer()
+	{
+		return container;
+	}
+	public void setContainer(PlayerContainer container)
+	{
+		this.container = container;
+	}
+
 	private boolean isFirstLogin = false;
 	private int roomNumber = -1;
 	private long lastMessageTime = 0;

@@ -8,6 +8,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import javax.websocket.Session;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
 import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
@@ -81,7 +82,7 @@ public class TaskHandler implements Runnable {
 		}
 		
 		if(type.equals("login")){
-			handleLoginMessage(session, (String)map.get("username"), (String)map.get("password"));
+			handleLoginMessage(session, (String)map.get("username"), (String)map.get("password"), (String)map.get("ip"));
 		}else{
 			Player player = Server.gameWorld.getPlayer(session);
 			if(player != null){
@@ -90,7 +91,7 @@ public class TaskHandler implements Runnable {
 		}
 	}
 	
-	private void handleLoginMessage(Session session, String username, String password){
+	private void handleLoginMessage(Session session, String username, String password, String ip){
 		if(username == null || Misc.getStringLen(username) < 2 || Misc.getStringLen(username) > 20 ||
 				password == null || password.length() < 4 || password.length() > 20){
 			try
@@ -104,12 +105,22 @@ public class TaskHandler implements Runnable {
 			return;
 		}
 		
-		Player player = PlayerService.logOrRegPlayer(username, password);
+		Player player = PlayerService.logOrRegPlayer(username, password, ip);
 		
 		if(player == null){
 			try
 			{
 				session.getBasicRemote().sendText(Json2Map.toJSONString(Json2Map.BuildKVMessage("logerr", 102)));
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace();
+			}
+			return;
+		}else if(Server.gameWorld.getPlayer(player.getPid()) != null){
+			try
+			{
+				session.getBasicRemote().sendText(Json2Map.toJSONString(Json2Map.BuildKVMessage("logerr", 103)));
 			}
 			catch(IOException e)
 			{
@@ -122,7 +133,27 @@ public class TaskHandler implements Runnable {
 	}
 	
 	private void handlePlayerMessage(Player player, String message){
+		System.out.println(message);
+		if(player.getSession() == null || !player.getSession().isOpen()){
+			System.out.println("未知session");
+			return;
+		}
 		
+		Map<String, Object> map = Json2Map.readFromJson(message);
+		if(map == null || map.size() == 0 || !map.containsKey("t")){
+			System.out.println("未知消息: " + message);
+			return;
+		}
+		
+		String key = (String) map.get("t");
+		//接收到文字消息
+		if(key.equals("text")){
+			String text = (String) map.get("text");
+			if(text == null || text.length() == 0 || text.length() > 200) return;
+			PlayerContainer container = player.getContainer();
+			if(container == null) return;
+			container.broadcastMessage(Json2Map.BuildTextMessage(player.getPid(), text));
+		}
 	}
 	
 	public void addTask(Task task){

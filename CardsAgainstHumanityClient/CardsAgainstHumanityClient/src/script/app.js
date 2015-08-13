@@ -90,6 +90,29 @@ var EventObject = (function () {
     }
     return EventObject;
 })();
+var Player = (function () {
+    function Player() {
+    }
+    Player.prototype.getLevel = function () {
+        var lvl = 1;
+        while (this.getLevelExp(lvl) < this.exp) {
+            lvl++;
+        }
+        return lvl;
+    };
+    Player.prototype.getNeedExp = function () {
+        return Math.max(this.getLevelExp(this.getLevel()) - this.getLevelExp(this.getLevel() - 1), 0);
+    };
+    Player.prototype.getRemainExp = function () {
+        return Math.max(this.exp - this.getLevelExp(this.getLevel() - 1), 0);
+    };
+    Player.prototype.getLevelExp = function (lvl) {
+        if (lvl == 0)
+            return 0;
+        return 10 + Math.round(Math.pow((lvl - 1) * 1.3, 1.9) * 5);
+    };
+    return Player;
+})();
 var Util = (function () {
     function Util() {
     }
@@ -119,18 +142,42 @@ var Util = (function () {
         }
         return len;
     };
+    Util.convertPlayerData = function (data) {
+        var p = new Player();
+        p.pid = data.pid;
+        p.name = data.name;
+        p.exp = data.exp;
+        p.state = data.state;
+        p.credit = data.credit;
+        p.fish = data.fish;
+        return p;
+    };
+    Util.safeString = function (text) {
+        text = text.replace(/"/g, "\\\"");
+        text = text.replace(/'/g, "\\'");
+        text = text.replace(/\\/g, "\\\\");
+        text = text.replace(/"/g, "\\\"");
+        text = text.replace(/'/g, "\\'");
+        text = text.replace(/\\/g, "\\\\");
+        return text;
+    };
     return Util;
 })();
 var Server = (function () {
     function Server() {
         var _this = this;
+        this.antiFlush = false;
         Server.instance = this;
         this.socket = new WebSocket(GameSettings.Server);
         this.socket.onopen = function (evt) { _this.onOpen(evt); };
         this.socket.onclose = function (evt) { _this.onClose(evt); };
         this.socket.onmessage = function (evt) { _this.onMessage(evt); };
         this.socket.onerror = function (evt) { _this.onError(evt); };
+        setInterval(this.flush, 300, this);
     }
+    Server.prototype.flush = function (_this1) {
+        _this1.antiFlush = false;
+    };
     /**
         * 成功连接到服务器事件
         */
@@ -167,19 +214,24 @@ var Server = (function () {
         }
     };
     /**
-        * 发生错误事件
-        */
+    * 发生错误事件
+    */
     Server.prototype.onError = function (evt) {
         console.log('发生错误: ' + evt.data);
         MyEvent.call('connectionerror', evt.data);
     };
     /**
-        * 发送信息至服务器事件
-        */
-    Server.prototype.send = function (data, isVital) {
+    * 发送信息至服务器事件
+    */
+    Server.prototype.send = function (data, isVital, isUser) {
+        if (this.antiFlush && isUser) {
+            MyEvent.call("text", { pid: 0, text: "您操作太快了！" });
+            return;
+        }
+        this.antiFlush = true;
         if (isVital && Main.isFrozen()) {
-            console.log('网络被堵塞，请稍后再试！');
-            MyEvent.call("msg", "网络被堵塞，请稍后再试！");
+            console.log('网络被堵塞');
+            MyEvent.call("text", { pid: 0, text: "网络被堵塞，请稍后再试！" });
             return;
         }
         if (GameSettings.debugMode)
@@ -194,13 +246,17 @@ var PackageBuilder = (function () {
     function PackageBuilder() {
     }
     PackageBuilder.buildLoginPackage = function (username, password) {
-        username = username.replace(/"/g, "\\\"");
-        username = username.replace(/'/g, "\\'");
-        username = username.replace(/\\/g, "\\\\");
-        password = password.replace(/"/g, "\\\"");
-        password = password.replace(/'/g, "\\'");
-        password = password.replace(/\\/g, "\\\\");
-        var pack = '{"t":"login", "username":"' + username + '", "password":"' + password + '"}';
+        username = Util.safeString(username);
+        var pack = '{"t":"login", "username":"' + username + '", "password":"' + password + '", "ip":"' + returnCitySN["cip"] + '"}';
+        return pack;
+    };
+    PackageBuilder.buildTextPackage = function (text) {
+        text = Util.safeString(text);
+        var pack = '{"t":"text", "text":"' + text + '"}';
+        return pack;
+    };
+    PackageBuilder.buildQuitPackage = function () {
+        var pack = '{"t":"quit"}';
         return pack;
     };
     return PackageBuilder;
@@ -228,30 +284,11 @@ var Signal = (function () {
     Signal.LoginErr = "logerr";
     Signal.MyInfo = "myinfo";
     Signal.LobbyInfo = "lobbyinfo";
+    Signal.PLAYERENTER = "playerenter";
+    Signal.PLAYERLEAVE = "playerleave";
+    Signal.TEXT = "text";
+    Signal.SendText = "sendtext";
     return Signal;
-})();
-var Player = (function () {
-    function Player() {
-    }
-    Player.prototype.getLevel = function () {
-        var lvl = 1;
-        while (this.getLevelExp(lvl) < this.exp) {
-            lvl++;
-        }
-        return lvl;
-    };
-    Player.prototype.getNeedExp = function () {
-        return Math.max(this.getLevelExp(this.getLevel()) - this.getLevelExp(this.getLevel() - 1), 0);
-    };
-    Player.prototype.getRemainExp = function () {
-        return Math.max(this.exp - this.getLevelExp(this.getLevel() - 1), 0);
-    };
-    Player.prototype.getLevelExp = function (lvl) {
-        if (lvl == 0)
-            return 0;
-        return 10 + Math.round(Math.pow((lvl - 1) * 1.3, 1.9) * 5);
-    };
-    return Player;
 })();
 var Main = (function () {
     function Main() {
@@ -269,7 +306,9 @@ var Main = (function () {
         Main.me = new Player();
         Main.loginState = new LoginState();
         Main.lobbyState = new LobbyState();
-        Main.loginState.start();
+        Main.playState = new PlayState();
+        //Main.loginState.start();
+        Main.playState.showGamePage(null);
     };
     Main.freeze = false;
     return Main;
@@ -280,7 +319,6 @@ var LoginState = (function () {
         this.loginable = false;
     }
     LoginState.prototype.start = function () {
-        this.bindEvents();
         Main.server = new Server();
         Main.state = State.CONNECTING;
         this.showLoginPage();
@@ -290,9 +328,18 @@ var LoginState = (function () {
         MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
         MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
         MyEvent.bind(Signal.MyInfo, this.onShowLobbyPage, this);
+        MyEvent.bind(Signal.LobbyInfo, this.onShowLobbyInfo, this);
         jQuery(".loginArea #submit").tapOrClick(this.onClickLogin);
     };
+    LoginState.prototype.unbindEvents = function () {
+        MyEvent.unbind(Signal.ServerInfo, this.onCanLogin);
+        MyEvent.unbind(Signal.OnClickLogin, this.onLogin);
+        MyEvent.unbind(Signal.LoginErr, this.onLoginErr);
+        MyEvent.unbind(Signal.MyInfo, this.onShowLobbyPage);
+        MyEvent.unbind(Signal.LobbyInfo, this.onShowLobbyInfo);
+    };
     LoginState.prototype.showLoginPage = function () {
+        this.bindEvents();
         jQuery("#loginPage").show();
         LoginState.setLoginTip("正在连接服务器...");
         this.activateLoginArea(false);
@@ -316,7 +363,7 @@ var LoginState = (function () {
         jQuery("#onlineBar").css("width", par + "%");
         jQuery("#serverinfo").html(data.players + "/" + data.max);
         if (parseInt(data.players) < parseInt(data.max)) {
-            LoginState.setLoginTip("请登录，如果该用户名没有注册过，则将自动为您注册。");
+            LoginState.setLoginTip("请登录，如果该用户名没有注册过，则将自动为您注册(每个IP最多只能注册5个账号)。");
             thisObject.activateLoginArea(true);
             thisObject.loginable = true;
         }
@@ -357,64 +404,175 @@ var LoginState = (function () {
         if (Main.state != State.CONNECTED)
             return;
         LoginState.setLoginTip('正在登录...');
-        Server.instance.send(PackageBuilder.buildLoginPackage(username, password), true);
+        Server.instance.send(PackageBuilder.buildLoginPackage(username, password), true, true);
     };
     LoginState.isUsernameLegal = function (name) {
         return true;
     };
     LoginState.prototype.onLoginErr = function (data, _this) {
         if (data == 101) {
-            LoginState.setLoginTip('用户名密码验证不通过，请检查输入。');
+            LoginState.setLoginTip('您的输入似乎有问题……');
         }
         else if (data == 102) {
-            LoginState.setLoginTip('密码错误，该用户已被注册！');
+            LoginState.setLoginTip('该用户已被注册且您的密码输入错误。或您的注册已达上限！');
+        }
+        else if (data == 103) {
+            LoginState.setLoginTip('无法登录，该用户已经在线了！');
         }
     };
     LoginState.prototype.onShowLobbyPage = function (data, thisObject) {
-        MyEvent.unbind(Signal.ServerInfo, this.onCanLogin);
-        MyEvent.unbind(Signal.OnClickLogin, this.onLogin);
-        MyEvent.unbind(Signal.LoginErr, this.onLoginErr);
-        MyEvent.unbind(Signal.MyInfo, this.onShowLobbyPage);
         jQuery("#loginPage").hide();
+        Main.lobbyState.showLobbyPage(data);
+    };
+    LoginState.prototype.onShowLobbyInfo = function (data, thisObject) {
+        Main.lobbyState.getLobbyInfo(data);
+        thisObject.unbindEvents();
     };
     return LoginState;
 })();
 var LobbyState = (function () {
     function LobbyState() {
-        this.bindEvents();
     }
-    LobbyState.prototype.showLobbyPage = function () {
+    LobbyState.prototype.getPlayerByPid = function (pid) {
+        var p = null;
+        for (var i = 0; i < this.players.length; i++) {
+            if (this.players[i].pid == pid) {
+                p = this.players[i];
+                break;
+            }
+        }
+        return p;
+    };
+    LobbyState.prototype.showLobbyPage = function (myinfo) {
+        this.bindEvents();
         jQuery("#lobbyPage").show();
+        this.clearChatArea();
+        this.getMyInfo(myinfo);
     };
     LobbyState.prototype.bindEvents = function () {
-        MyEvent.bind(Signal.MyInfo, this.OnGetMyInfo, this);
-        MyEvent.bind(Signal.LobbyInfo, this.OnGetLobbyInfo, this);
+        MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
+        MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
+        MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
+        MyEvent.bind(Signal.SendText, this.onSendText, this);
+        jQuery('#inputArea #inputbox').keypress(function (event) {
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if (keycode == '13') {
+                MyEvent.call(Signal.SendText);
+            }
+        });
+        jQuery('#inputArea #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.SendText);
+        });
     };
-    LobbyState.prototype.OnGetMyInfo = function (data, _this) {
-        _this.showLobbyPage();
-        _this.updateMyInfo(data);
+    LobbyState.prototype.unbindEvents = function () {
+        MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
+        MyEvent.unbind(Signal.PLAYERLEAVE, this.onPlayerLeave);
+        MyEvent.unbind(Signal.TEXT, this.onReceiveText);
+        MyEvent.unbind(Signal.SendText, this.onSendText);
     };
-    LobbyState.prototype.OnGetLobbyInfo = function (data, _this) {
+    LobbyState.prototype.onSendText = function () {
+        var $text = jQuery("#inputArea #inputbox")[0];
+        var text = $text.value.trim();
+        if (text == null || text.length == 0 || text.length > 200)
+            return;
+        Server.instance.send(PackageBuilder.buildTextPackage(text), true, true);
+        $text.value = "";
+    };
+    LobbyState.prototype.getMyInfo = function (data) {
+        this.updateMyInfo(data);
+    };
+    LobbyState.prototype.getLobbyInfo = function (data) {
+        this.players = new Array();
         Main.state = State.LOBBY;
+        for (var i = 0; i < data.players.length; i++) {
+            this.addOnePlayer(Util.convertPlayerData(data.players[i]));
+        }
+        this.updatePlayerList();
+    };
+    LobbyState.prototype.onReceiveText = function (data, _this) {
+        var pid = parseInt(data.pid);
+        var speakerName = "Unknow";
+        if (isNaN(data.pid)) {
+            speakerName = data.pid;
+        }
+        else if (pid == 0) {
+            speakerName = "系统";
+        }
+        else {
+            var p = _this.getPlayerByPid(pid);
+            if (p != null)
+                speakerName = p.name;
+        }
+        var text = data.text;
+        if (pid == 0)
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
+        else
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
+        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+    };
+    LobbyState.prototype.clearChatArea = function () {
+        jQuery("#chatArea #messages").empty();
     };
     LobbyState.prototype.updateMyInfo = function (data) {
-        Main.me.pid = data.info[0].pid;
-        Main.me.exp = data.info[0].exp;
-        Main.me.state = data.info[0].state;
-        Main.me.credit = data.info[0].credit;
-        Main.me.fish = data.info[0].fish;
-        Main.me.name = data.info[0].name;
+        Main.me = Util.convertPlayerData(data.info[0]);
         var level = Main.me.getLevel();
         var remainExp = Main.me.getRemainExp();
         var needExp = Main.me.getNeedExp();
         jQuery("#statArea #nameTag").html(Main.me.name);
+        jQuery("#statArea #nameTag").attr("title", "pid:" + Main.me.pid);
         jQuery("#statArea #level").html("Lv." + level);
         jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
         jQuery("#statArea #credit #content").html(Main.me.credit);
         jQuery("#statArea #fish #content").html(Main.me.fish);
         jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     };
+    LobbyState.prototype.onPlayerEnter = function (data, _this) {
+        var p = Util.convertPlayerData(data.player[0]);
+        MyEvent.call(Signal.TEXT, { text: p.name + " 进入了大厅", pid: 0 });
+        if (data.player[0].pid == Main.me.pid)
+            return;
+        _this.addOnePlayer(p);
+    };
+    LobbyState.prototype.onPlayerLeave = function (data, _this) {
+        var p = _this.getPlayerByPid(data.pid);
+        if (p != null) {
+            MyEvent.call(Signal.TEXT, { text: p.name + " 离开了大厅", pid: 0 });
+            _this.removeOnePlayer(p.pid);
+        }
+    };
+    LobbyState.prototype.addOnePlayer = function (player) {
+        this.players.push(player);
+        this.updatePlayerList();
+    };
+    LobbyState.prototype.removeOnePlayer = function (pid) {
+        var index = -1;
+        for (var i = 0; i < this.players.length; i++) {
+            if (this.players[i].pid == pid) {
+                index = i;
+                break;
+            }
+        }
+        if (index != -1) {
+            this.players.splice(index, 1);
+            this.updatePlayerList();
+        }
+    };
+    LobbyState.prototype.updatePlayerList = function () {
+        var ele = jQuery("#playersArea");
+        ele.empty();
+        for (var i = 0; i < this.players.length; i++) {
+            ele.append('<div class="player" title="pid:' + this.players[i].pid + '" id="' + this.players[i].pid + '"><span id="level">Lv.' + this.players[i].getLevel() + '</span><span id="name">' + this.players[i].name + '</span></div>');
+        }
+    };
     return LobbyState;
+})();
+var PlayState = (function () {
+    function PlayState() {
+    }
+    PlayState.prototype.showGamePage = function (data) {
+        jQuery("#gamePage").show();
+    };
+    return PlayState;
 })();
 window.onload = function () {
     new Main().start();
