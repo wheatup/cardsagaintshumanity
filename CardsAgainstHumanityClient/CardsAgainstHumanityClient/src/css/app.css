@@ -74,6 +74,10 @@
 #gamePage #leftArea #blackCardArea{width: 240px; height:144px;}
 #gamePage #leftArea #blackCardArea #blackCard{width: 236px; height:130px; background-color:#111; padding:5px; border:solid 2px #555; margin-top:10px;  font-size:18px; word-break:break-all;}
 
+#gamePage #leftArea #timerArea{width: 240px; height:20px; margin-top:5px; }
+#gamePage #leftArea #timerArea #timerBack{width: 246px; height:20px; background-color:#999; border:solid 2px #555;}
+#gamePage #leftArea #timerArea #timerBack #timerFill{width:32%; height:20px; background-color:#111;}
+
 #gamePage #leftArea #statArea{width:246px; height:122px; margin-top:10px; background-color:#888; border:solid 2px #555; color:#222;}
 #gamePage #leftArea #statArea #nameTag{height:24px; background-color:#555; font-weight:bold; text-align:center; font-size:18px; line-height:24px; color:#fff; overflow:hidden;}
 #gamePage #leftArea #statArea #levelinfo{height:20px;  overflow:visible;}
@@ -84,8 +88,8 @@
 #gamePage #leftArea #statArea #title{height: 22px; display:inline-block; width:60px; vertical-align:top; text-align:right;}
 #gamePage #leftArea #statArea #content{height: 22px; color:#222; font-weight:bold; margin-left:10px;  vertical-align:top;}
 
-#gamePage #leftArea #chatArea{width:250px; height:286px; margin-top:10px;}
-#gamePage #leftArea #chatArea #messages{width:236px; height:238px; background-color:#888; border:solid 2px #555; overflow-x:hidden; overflow-y:scroll; padding:5px;}
+#gamePage #leftArea #chatArea{width:250px; height:261px; margin-top:10px;}
+#gamePage #leftArea #chatArea #messages{width:236px; height:213px; background-color:#888; border:solid 2px #555; overflow-x:hidden; overflow-y:scroll; padding:5px;}
 #gamePage #leftArea #chatArea #messages #server{color:#444; font-weight:bold;}
 #gamePage #leftArea #chatArea #messages #name{color:#ccc; font-weight:bold;}
 #gamePage #leftArea #chatArea #messages #content{color:#fff;}
