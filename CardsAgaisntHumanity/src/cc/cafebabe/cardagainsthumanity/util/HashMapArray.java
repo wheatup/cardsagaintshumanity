@@ -1,23 +1,25 @@
 package cc.cafebabe.cardagainsthumanity.util;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class HashMapArray
 {
-	private Set<Map<String,Object>> maps;
-	public Set<Map<String, Object>> getMaps()
+	private List<Map<String,Object>> maps;
+	public List<Map<String, Object>> getMaps()
 	{
 		return maps;
 	}
-	public void setMaps(Set<Map<String, Object>> maps)
+	public void setMaps(List<Map<String, Object>> maps)
 	{
 		this.maps = maps;
 	}
 	
 	public HashMapArray(){
-		maps = new HashSet<Map<String, Object>>();
+		maps = new ArrayList<Map<String, Object>>();
 	}
 	
 	public void addMap(Map<String, Object> map){

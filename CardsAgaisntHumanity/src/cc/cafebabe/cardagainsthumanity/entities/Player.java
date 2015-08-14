@@ -142,6 +142,7 @@ public class Player
 	}
 	
 	public void sendMessage(String message){
+		System.out.println("> " + message);
 		if(session != null && session.isOpen()){
 			try {
 				session.getBasicRemote().sendText(message);

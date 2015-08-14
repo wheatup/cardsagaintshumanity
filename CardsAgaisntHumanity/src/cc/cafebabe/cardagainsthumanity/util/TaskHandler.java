@@ -134,7 +134,6 @@ public class TaskHandler implements Runnable {
 	}
 	
 	private void handlePlayerMessage(Player player, String message){
-		System.out.println(message);
 		if(player.getSession() == null || !player.getSession().isOpen()){
 			System.out.println("未知session");
 			return;
@@ -167,6 +166,45 @@ public class TaskHandler implements Runnable {
 					if(rcode != 2){
 						Server.gameWorld.getLobby().removePlayerFromLobby(player);
 					}
+				}
+			}
+		}
+		//接收到进入房间消息
+		else if(key.equals("enterroom")){
+			String idraw = (String) map.get("id");
+			int id = -1;
+			try{id = Integer.parseInt(idraw);}catch(Exception e){}
+			if(id == -1) return;
+			Room room = Server.gameWorld.getLobby().getRoom(id);
+			if(room != null){
+				int rcode = room.sendPlayerInRoom(player);
+				if(rcode != 2){
+					Server.gameWorld.getLobby().removePlayerFromLobby(player);
+				}
+			}
+		}
+		//接收到返回大厅消息
+		else if(key.equals("returnlobby")){
+			int roomid = player.getRoomNumber();
+			if(player.getRoomNumber() > 0){
+				Room room = Server.gameWorld.getLobby().getRoom(roomid);
+				if(room != null){
+					room.removePlayerFromRoom(player);
+					Server.gameWorld.getLobby().sendPlayerInLobby(player);
+				}
+			}
+		}
+		//接收切换座位消息
+		else if(key.equals("switch")){
+			int roomid = player.getRoomNumber();
+			if(player.getRoomNumber() > 0){
+				Room room = Server.gameWorld.getLobby().getRoom(roomid);
+				if(room != null){
+					String idraw = (String) map.get("place");
+					int id = -1;
+					try{id = Integer.parseInt(idraw);}catch(Exception e){}
+					if(id == -1) return;
+					room.switchPlayerPlace(player, id);
 				}
 			}
 		}

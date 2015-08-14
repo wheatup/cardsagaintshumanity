@@ -4,11 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public class Lobby extends PlayerContainer{
-	public static final int MAX_ROOM_COUNT = 100;
+	public static final int MAX_ROOM_COUNT = 20;
 	public boolean dirtyRoom = true;
 	
 	private Map<Integer, Room> rooms;
@@ -22,7 +23,9 @@ public class Lobby extends PlayerContainer{
 	public int createRoom(){
 		for(int i = 1; i <= MAX_ROOM_COUNT; i++){
 			if(!rooms.containsKey(i)){
-				rooms.put(i, new Room(i));
+				Room r = new Room(i);
+				rooms.put(i, r);
+				Server.gameWorld.getLobby().broadcastMessage(Json2Map.buildAddNewRoomInfo(r));
 				return i;
 			}
 		}
@@ -35,8 +38,8 @@ public class Lobby extends PlayerContainer{
 	
 	public void sendPlayerInLobby(Player player){
 		addPlayer(player);
-		player.sendMessage(Json2Map.buildLobbyInfo(this));
 		player.setRoomNumber(0);
+		player.sendMessage(Json2Map.buildLobbyInfo(this));
 		broadcastMessage(Json2Map.buildPlayerEnterInfo(player));
 	}
 	
@@ -53,8 +56,10 @@ public class Lobby extends PlayerContainer{
 	
 	public HashMapArray buildRoomsInfo(){
 		HashMapArray arr = new HashMapArray();
-		for(Room r: rooms.values()){
-			arr.addMap(r.buildRoomShortInfo());
+		for(int i = 1; i <= MAX_ROOM_COUNT; i++){
+			Room room = rooms.get(i);
+			if(room != null)
+				arr.addMap(room.buildRoomShortInfo());
 		}
 		return arr;
 	}

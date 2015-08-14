@@ -112,9 +112,10 @@ public class Room extends PlayerContainer{
 	
 	public void removePlayerFromRoom(Player player){
 		removePlayer(player);
-		this.orderedPlayer.remove(player);
-		if(player == host && this.orderedPlayer.size() > 0){
-			setHost(this.orderedPlayer.get(0));
+		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
+		orderedPlayer.remove(player);
+		if(player == host && orderedPlayer.size() > 0){
+			setHost(orderedPlayer.get(0));
 		}
 		
 		if(this.players.size() == 0 && this.spectateArea.players.size() == 0){
@@ -122,10 +123,38 @@ public class Room extends PlayerContainer{
 		}
 	}
 	
+	public void switchPlayerPlace(Player player, int place){
+		if(place == 0){
+			if(!spectateArea.players.containsValue(player) || players.containsValue(player)){
+				return;
+			}
+			if(players.size() < MAX_PLAYER){
+				spectateArea.removePlayer(player);
+				addPlayer(player);
+				orderedPlayer.add(player);
+				broadcastMessage(Json2Map.buildPlayerSwitchInfo(player.getPid(), place));
+			}
+		}else if(place == 1){
+			if(!players.containsValue(player) || spectateArea.players.containsValue(player)){
+				return;
+			}
+			
+			if(spectateArea.players.size() < MAX_SPECTATOR){
+				broadcastMessage(Json2Map.buildPlayerSwitchInfo(player.getPid(), place));
+				removePlayer(player);
+				orderedPlayer.remove(player);
+				spectateArea.addPlayer(player);
+			}
+		}
+	}
+	
 	public HashMapArray buildPlayersInfo(){
 		HashMapArray arr = new HashMapArray();
-		for(Player p : orderedPlayer){
-			arr.addMap(p.buildPlayerInfo());
+		int len = orderedPlayer.size();
+		for(int i = 0; i < len; i++){
+			Player p = orderedPlayer.get(i);
+			if(p != null)
+				arr.addMap(p.buildPlayerInfo());
 		}
 		return arr;
 	}
@@ -140,7 +169,6 @@ public class Room extends PlayerContainer{
 		map.put("state", getRound() == null ? 0 : getRound().getState());
 		String cardpacks = "";
 		if(getCardpacks() != null){
-			
 			for(int i : getCardpacks()){
 				cardpacks+=CardsService.cardpacks.get(i) + ",";
 			}

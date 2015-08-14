@@ -38,7 +38,9 @@ public class Json2Map
 				JsonArrayBuilder jab = Json.createArrayBuilder();
 				JsonObjectBuilder job2 = Json.createObjectBuilder();
 				HashMapArray hma = (HashMapArray) map.get(key);
-				for(Map<String, Object> m : hma.getMaps()){
+				int len = hma.getMaps().size();
+				for(int i = 0; i < len; i++){
+					Map<String, Object> m = hma.getMaps().get(i);
 					for(String k : m.keySet()){
 						job2.add(k, m.get(k) == null ? "null" : m.get(k).toString());
 					}
@@ -174,6 +176,12 @@ public class Json2Map
 		case INFO:
 			map.put("t", "info");
 			break;
+		case ADDNEWROOM:
+			map.put("t", "addroom");
+			break;
+		case SWITCHPLACE:
+			map.put("t", "onswitch");
+			break;
 		default:
 			map.put("t", "d");
 			break;
@@ -247,6 +255,21 @@ public class Json2Map
 		Map<String, Object> map = BuildMapByType(MessageType.INFO);
 		map.put("k", "cp");
 		map.put("cp", CardsService.buildCardPacksInfo());
+		return map;
+	}
+	
+	public static Map<String, Object> buildAddNewRoomInfo(Room room){
+		Map<String, Object> map = BuildMapByType(MessageType.ADDNEWROOM);
+		HashMapArray hma = new HashMapArray();
+		hma.addMap(room.buildRoomShortInfo());
+		map.put("room", hma);
+		return map;
+	}
+	
+	public static Map<String, Object> buildPlayerSwitchInfo(long id, int place){
+		Map<String, Object> map = BuildMapByType(MessageType.SWITCHPLACE);
+		map.put("pid", id);
+		map.put("place", place);
 		return map;
 	}
 }

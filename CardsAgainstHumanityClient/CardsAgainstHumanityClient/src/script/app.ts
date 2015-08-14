@@ -131,8 +131,15 @@ class Room {
     public roomname: string;
     public password: string;
     public playerCount: number;
-    public spectorCount: number;
-    public cardPacks: Array<string>;
+    public spectatorCount: number;
+    public state: number;
+    public cardPacks: Array<CardPack>;
+}
+
+class CardPack {
+    public id: number;
+    public name: string;
+    public level: number;
 }
 
 class Util {
@@ -170,13 +177,31 @@ class Util {
 		p.credit = data.credit;
 		p.fish = data.fish;
 		return p;
-	}
+    }
 
-	public static convertRoomData(data: any): Room {
-		var r: Room = new Room();
-
-		return r;
-	}
+    public static convertRoomData(data: any): Room {
+        var r: Room = new Room();
+        r.id = data.id;
+        r.roomname = data.name;
+        r.playerCount = data.pc;
+        r.spectatorCount = data.sc;
+        r.password = data.pw;
+        r.state = data.state;
+        r.cardPacks = new Array<CardPack>();
+        if (data.cp != null && data.cp != '') {
+            var strs = data.cp.split(",");
+            for (var i: number = 0; i < strs.length; i++) {
+                var id: number = strs[i];
+                for (var j: number = 0; j < Main.cardpacks.length; j++) {
+                    if (Main.cardpacks[j].id == id) {
+                        r.cardPacks.push(Main.cardpacks[j]);
+                        alert(Main.cardpacks[j].name);
+                    }
+                }
+            }
+        }
+        return r;
+    }
 
 	public static safeString(text: string): string {
 		text = text.replace(/"/g, "\\\"");
@@ -308,6 +333,21 @@ class PackageBuilder {
         var pack = '{"t":"createroom"}';
         return pack;
     }
+
+    public static buildEnterRoomPackage(id: number): string {
+        var pack = '{"t":"enterroom", "id":"' + id + '"}';
+        return pack;
+    }
+
+    public static buildReturnLobbyPackage(): string {
+        var pack = '{"t":"returnlobby"}';
+        return pack;
+    }
+
+    public static buildSwitchPlacePackage(place: number): string {
+        var pack = '{"t":"switch", "place":"' + place + '"}';
+        return pack;
+    }
 }
 
 class MessageAnalysis {
@@ -335,9 +375,18 @@ class Signal {
     public static SendText: string = "sendtext";
     public static RoomInfo: string = "roominfo";
     public static ONCLICKCREATEROOM: string = "ONCLICKCREATEROOM";
+    public static ONCLICKROOM: string = "ONCLICKROOM";
+    public static INFO: string = "info";
+    public static DESTROYROOM: string = "destroyroom";
+    public static ADDROOM: string = "addroom";
+    public static OnClickLeave: string = "returnlobby";
+    public static OnClickSwitchButton: string = "switchplace";
+    public static OnPlayerSwitch: string = "onswitch";
 }
 
 class Main {
+    public static cardpacks: Array<CardPack>;
+
     public static server: Server;
     public static state: State;
     public static me: Player;
@@ -365,6 +414,22 @@ class Main {
         Main.lobbyState = new LobbyState();
 		Main.playState = new PlayState();
         Main.loginState.start();
+        MyEvent.bind(Signal.INFO, this.onReceiveInfo, this);
+    }
+
+    private onReceiveInfo(data: any, _this: Main) {
+        switch (data.k) {
+            case "cp":
+                Main.cardpacks = new Array<CardPack>();
+                for (var i: number = 0; i < data.cp.length; i++) {
+                    var cp: CardPack = new CardPack();
+                    cp.id = data.cp[i].id;
+                    cp.name = data.cp[i].name;
+                    cp.level = data.cp[i].lv;
+                    Main.cardpacks.push(cp);
+                }
+                break;
+        }
     }
 }
 
@@ -493,6 +558,7 @@ class LobbyState {
     private players: Array<Player>;
     private rooms: Array<Room>;
     private canCreateRoom: boolean = false;
+    private canEnterRoom: boolean = false;
 
 	public constructor() {
 		
@@ -522,6 +588,17 @@ class LobbyState {
 		this.clearChatArea();
         this.getMyInfo(myinfo);
         this.canCreateRoom = true;
+        this.canEnterRoom = true;
+    }
+
+    public returnToLobbyPage(data: any): void {
+        this.clearLobbyPage();
+        this.bindEvents();
+        jQuery("#lobbyPage").show();
+        this.clearChatArea();
+        this.canCreateRoom = true;
+        this.canEnterRoom = true;
+        this.getLobbyInfo(data);
     }
 
 	private bindEvents(): void {
@@ -529,18 +606,23 @@ class LobbyState {
 		MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
 		MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
 		MyEvent.bind(Signal.SendText, this.onSendText, this);
-        jQuery('#lobbyPage #inputArea #inputbox').keypress(function (event) {
-			var keycode = (event.keyCode ? event.keyCode : event.which);
-			if (keycode == '13') {
-				MyEvent.call(Signal.SendText);
-			}
-		});
-        jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
-			MyEvent.call(Signal.SendText);
-        });
-        jQuery("#settingsArea #createRoom").tapOrClick(function () { MyEvent.call(Signal.ONCLICKCREATEROOM) });
         MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom, this);
         MyEvent.bind(Signal.RoomInfo, this.onReceiveRoomInfo, this);
+        MyEvent.bind(Signal.DESTROYROOM, this.onDestroyRoom, this);
+        MyEvent.bind(Signal.ADDROOM, this.onAddRoom, this);
+        MyEvent.bind(Signal.ONCLICKROOM, this.onClickRoom, this);
+
+        jQuery('#lobbyPage #inputArea #inputbox').keypress(function (event) {
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if (keycode == '13') {
+                MyEvent.call(Signal.SendText);
+            }
+        });
+        jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.SendText);
+        });
+        jQuery("#settingsArea #createRoom").tapOrClick(function () { MyEvent.call(Signal.ONCLICKCREATEROOM) });
+        
 	}
 
 	private unbindEvents(): void {
@@ -549,6 +631,10 @@ class LobbyState {
 		MyEvent.unbind(Signal.TEXT, this.onReceiveText);
         MyEvent.unbind(Signal.SendText, this.onSendText);
         MyEvent.unbind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
+        MyEvent.unbind(Signal.RoomInfo, this.onReceiveRoomInfo);
+        MyEvent.unbind(Signal.DESTROYROOM, this.onDestroyRoom);
+        MyEvent.unbind(Signal.ADDROOM, this.onAddRoom);
+        MyEvent.unbind(Signal.ONCLICKROOM, this.onClickRoom);
 	}
 
 	public onSendText(): void {
@@ -581,10 +667,9 @@ class LobbyState {
 		this.updatePlayerList();
 
 		this.rooms = new Array<Room>();
-		for (var i = 0; i < data.players.length; i++) {
-			this.addOnePlayer(Util.convertPlayerData(data.players[i]));
+		for (var i = 0; i < data.rooms.length; i++) {
+			this.addOneRoom(Util.convertRoomData(data.rooms[i]));
 		}
-
     }
 
 	public onReceiveText(data: any, _this: LobbyState): void {
@@ -629,13 +714,38 @@ class LobbyState {
         jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     }
 
+    public onClickRoom(data: any, _this: LobbyState) {
+        if (!_this.canEnterRoom) {
+            Util.showMessage("您现在不能进入房间！");
+            return;
+        }
+
+        var room: Room = null;
+        for (var i: number = 0; i < _this.rooms.length; i++) {
+            if (_this.rooms[i].id == data) {
+                room = _this.rooms[i];
+            }
+        }
+
+        if (room == null) {
+            Util.showMessage("房间不存在！");
+            return;
+        }
+
+        if (room.playerCount < 8 || room.spectatorCount < 16) {
+            this.canEnterRoom = false;
+            Server.instance.send(PackageBuilder.buildEnterRoomPackage(data), true, true);
+        } else {
+            Util.showMessage("该房间已满！");
+        }
+    }
+
 	public onPlayerEnter(data: any, _this: LobbyState): void{
-		
 		var p: Player = Util.convertPlayerData(data.player[0]);
 		MyEvent.call(Signal.TEXT, {text:p.name + " 进入了大厅", pid:0});
 		if (data.player[0].pid == Main.me.pid)
 			return;
-		_this.addOnePlayer(p);
+        _this.addOnePlayer(p);
 	}
 
 	public onPlayerLeave(data: any, _this: LobbyState): void {
@@ -646,9 +756,14 @@ class LobbyState {
 		}
     }
 
+    public onAddRoom(data: any, _this: LobbyState): void {
+        var room: Room = Util.convertRoomData(data.room[0]);
+        _this.addOneRoom(room);
+    }
+
 	public addOnePlayer(player: Player): void {
 		this.players.push(player);
-		this.updatePlayerList();
+        this.updatePlayerList();
 	}
 
 	public removeOnePlayer(pid: number): void {
@@ -664,7 +779,32 @@ class LobbyState {
 			this.players.splice(index, 1);
 			this.updatePlayerList();
 		}
-	}
+    }
+
+    public onDestroyRoom(data: any, _this: LobbyState): void {
+        _this.removeOneRoom(data);
+    }
+
+    public addOneRoom(room: Room): void {
+        var state = room.state == 0 ? "等待中" : "游戏中";
+        var cp: string = "";
+        for (var i: number = 0; i < room.cardPacks.length; i++) {
+            cp = cp + '<div class="cardpack" id= "' + room.cardPacks[i].id + '">' + room.cardPacks[i].name + '</div>';
+        }
+        jQuery("#lobbyPage #roomArea").append('<div class="room" id="' + room.id + '"><div class="left"><div id="roomnum">' + (room.id < 10 ? '00' : (room.id < 100 ? '0' : '')) + room.id + '</div><div id= "desc">' + room.roomname + '</div></div><div class="middle"><div id="players">玩家:' + room.playerCount + '/8</div><div id= "spectors"> 观众:' + room.spectatorCount + '/16 </div><div id="stat">' + state + '</div></div><div id= "packsArea">' + cp + '</div></div>');
+        jQuery("#lobbyPage .room[id=" + room.id + "]").tapOrClick(function () { MyEvent.call(Signal.ONCLICKROOM, room.id) });
+        this.rooms.push(room);
+    }
+
+    public removeOneRoom(id: number): void {
+        jQuery("#lobbyPage #roomArea .room[id=" + id + "]").remove();
+        for (var i: number = 0; i < this.rooms.length; i++) {
+            if (this.rooms[i].id == id) {
+                this.rooms.splice(i, 1);
+                break;
+            }
+        }
+    }
 
 	public updatePlayerList(): void {
 		var ele: any = jQuery("#lobbyPage #playersArea");
@@ -682,8 +822,11 @@ class LobbyState {
 }
 
 class PlayState{
+    private isPlayer: boolean = false;
 	private players: Array<Player>;
-	private spectators: Array<Player>;
+    private spectators: Array<Player>;
+    private canReturnToLobby: boolean = false;
+    private canSwitch: boolean = false;
 
 	public constructor() {
         this.players = new Array<Player>();
@@ -691,6 +834,10 @@ class PlayState{
 	}
 
     public showGamePage(data: any): void {
+        this.players = new Array<Player>();
+        this.spectators = new Array<Player>();
+        this.canReturnToLobby = true;
+        this.canSwitch = true;
         this.bindEvents();
         this.clearGamePage();
         jQuery("#gamePage").show();
@@ -706,12 +853,21 @@ class PlayState{
         for (var i: number = 0; i < data.players.length; i++) {
             var p: Player = Util.convertPlayerData(data.players[i]);
             this.addOnePlayer(p, false);
+            if (p.pid == Main.me.pid)
+                this.isPlayer = true;
         }
 
         for (var i: number = 0; i < data.spectators.length; i++) {
             var p: Player = Util.convertPlayerData(data.spectators[i]);
             this.addOnePlayer(p, true);
+            if (p.pid == Main.me.pid)
+                this.isPlayer = false;
         }
+
+        if (this.isPlayer)
+            jQuery("#settingsArea #spectate").html("观战");
+        else
+            jQuery("#settingsArea #spectate").html("加入");
     }
 
     private bindEvents(): void {
@@ -719,6 +875,10 @@ class PlayState{
         MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
         MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
         MyEvent.bind(Signal.SendText, this.onSendText, this);
+        MyEvent.bind(Signal.OnClickLeave, this.onClickReturnLobby, this);
+        MyEvent.bind(Signal.LobbyInfo, this.onReturnToLobby, this);
+        MyEvent.bind(Signal.OnClickSwitchButton, this.onClickSwitchButton, this);
+        MyEvent.bind(Signal.OnPlayerSwitch, this.onPlayerSwitch, this);
         jQuery('#gamePage #inputArea #inputbox').keypress(function (event) {
             var keycode = (event.keyCode ? event.keyCode : event.which);
             if (keycode == '13') {
@@ -728,13 +888,23 @@ class PlayState{
         jQuery('#gamePage #inputArea #submit').tapOrClick(function (event) {
             MyEvent.call(Signal.SendText);
         });
+        jQuery('#gamePage #leave').tapOrClick(function (event) {
+            MyEvent.call(Signal.OnClickLeave);
+        });
+        jQuery('#gamePage #spectate').tapOrClick(function (event) {
+            MyEvent.call(Signal.OnClickSwitchButton);
+        });
     }
 
     private unbindEvents(): void {
-        MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
-        MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
-        MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
-        MyEvent.bind(Signal.SendText, this.onSendText, this);
+        MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
+        MyEvent.unbind(Signal.PLAYERLEAVE, this.onPlayerLeave);
+        MyEvent.unbind(Signal.TEXT, this.onReceiveText);
+        MyEvent.unbind(Signal.SendText, this.onSendText);
+        MyEvent.unbind(Signal.OnClickLeave, this.onClickReturnLobby);
+        MyEvent.unbind(Signal.LobbyInfo, this.onReturnToLobby);
+        MyEvent.unbind(Signal.OnClickSwitchButton, this.onClickSwitchButton);
+        MyEvent.unbind(Signal.OnPlayerSwitch, this.onPlayerSwitch);
     }
 
     public clearGamePage(): void {
@@ -790,8 +960,8 @@ class PlayState{
         }
 
         if (p == null) {
-            for (var i = 0; i < this.players.length; i++) {
-                if (this.players[i].pid == pid) {
+            for (var i = 0; i < this.spectators.length; i++) {
+                if (this.spectators[i].pid == pid) {
                     p = this.spectators[i];
                     break;
                 }
@@ -843,7 +1013,7 @@ class PlayState{
             this.updatePlayerList();
         } else {
             for (var i = 0; i < this.spectators.length; i++) {
-                if (this.players[i].pid == pid) {
+                if (this.spectators[i].pid == pid) {
                     index = i;
                     break;
                 }
@@ -863,12 +1033,12 @@ class PlayState{
         elesp.empty();
         for (var i = 0; i < this.players.length; i++) {
             var p: Player = this.players[i];
-            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar"> 裁判 </div></div>');
+            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar">裁判</div></div>');
         }
 
         for (var i = 0; i < this.spectators.length; i++) {
             var p: Player = this.spectators[i];
-            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div></div>');
+            elesp.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div></div>');
         }
     }
 
@@ -900,6 +1070,69 @@ class PlayState{
         if (text == null || text.length == 0 || text.length > 200) return;
         Server.instance.send(PackageBuilder.buildTextPackage(text), true, true);
         $text.value = "";
+    }
+
+    public onClickSwitchButton(data: any, _this: PlayState): void {
+        if (!_this.canSwitch) {
+            Util.showMessage("您现在不能更换座位！");
+            return;
+        }
+
+        if (_this.isPlayer) {
+            if (_this.spectators.length >= 16) {
+                Util.showMessage("无法观战，观众已满！");
+                return;
+            }
+        } else {
+            if (_this.players.length >= 8) {
+                Util.showMessage("无法加入，玩家已满！");
+                return;
+            }
+        }
+        _this.canSwitch = false;
+        Server.instance.send(PackageBuilder.buildSwitchPlacePackage(_this.isPlayer ? 1 : 0), true, true);
+    }
+
+    public onPlayerSwitch(data: any, _this: PlayState): void {
+        var id: number = data.pid;
+        var place: number = data.place;
+        var p: Player = _this.getPlayerByPid(id);
+        if (p == null) return;
+
+        _this.removeOnePlayer(p.pid);
+        _this.addOnePlayer(p, place == 1);
+        if (place == 1) {
+            Util.showMessage(p.name + "开始旁观");
+        } else {
+            Util.showMessage(p.name + "进入对局");
+        }
+
+
+        if (id == Main.me.pid) {
+            _this.canSwitch = true;
+            
+            if (place == 0) {
+                jQuery("#settingsArea #spectate").html("观战");
+                _this.isPlayer = true;
+            } else {
+                jQuery("#settingsArea #spectate").html("加入");
+                _this.isPlayer = false;
+            }
+        }
+    }
+
+    public onClickReturnLobby(data: any, _this: PlayState): void {
+        if (!_this.canReturnToLobby) {
+            Util.showMessage("无法退出");
+            return;
+        }
+        Server.instance.send(PackageBuilder.buildReturnLobbyPackage(), true, true);
+    }
+
+    public onReturnToLobby(data: any, _this: PlayState): void {
+        _this.unbindEvents();
+        jQuery("#gamePage").hide();
+        Main.lobbyState.returnToLobbyPage(data);
     }
 }
 
