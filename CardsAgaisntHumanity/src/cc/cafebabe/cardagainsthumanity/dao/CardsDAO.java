@@ -12,6 +12,7 @@ import java.util.Set;
 
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Card;
+import cc.cafebabe.cardagainsthumanity.entities.CardPack;
 import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
 
 public class CardsDAO
@@ -150,16 +151,20 @@ public class CardsDAO
 		}
 	}
 	
-	public static Map<Integer, String> getCardsPacks(){
-		Map<Integer, String> packs = new HashMap<Integer, String>();
+	public static Map<Integer, CardPack> getCardsPacks(){
+		Map<Integer, CardPack> packs = new HashMap<Integer, CardPack>();
 		try
 		{
-			PreparedStatement prep = BaseDAO.cardsDB.prepareStatement("select packid, name from cardpack;");
+			PreparedStatement prep = BaseDAO.cardsDB.prepareStatement("select packid, name, needlevel from cardpack;");
 		    ResultSet rs = prep.executeQuery();
 		    while(rs.next()){
 		    	int packid = rs.getInt("packid");
 		    	String name = rs.getString("name");
-		    	packs.put(packid, name);
+		    	int level = rs.getInt("needlevel");
+		    	CardPack cp = new CardPack(packid, name, level);
+		    	cp.setWhiteCards(getWhiteCards(packid));
+		    	cp.setBlackCards(getBlackCards(packid));
+		    	packs.put(packid, cp);
 		    }
 		    rs.close();
 		    prep.close();
@@ -205,15 +210,14 @@ public class CardsDAO
 		return card;
 	}
 	
-	public static Set<WhiteCard> getWhiteCards(int cardpack, int state){
+	public static Set<WhiteCard> getWhiteCards(int cardpack){
 		Set<WhiteCard> cards = new HashSet<WhiteCard>();
 		try
 		{
 			PreparedStatement prep = BaseDAO.cardsDB.prepareStatement(
-					"select cid from card where typeid = ? and packid = ? and state = ?;");
+					"select cid from card where typeid = ? and packid = ?;");
 			prep.setInt(1, Card.TYPE_WHITE);
 			prep.setInt(2, cardpack);
-			prep.setInt(3, state);
 		    ResultSet rs = prep.executeQuery();
 		    while(rs.next()){
 		    	long cid = rs.getLong("cid");
@@ -232,15 +236,14 @@ public class CardsDAO
 		return cards;
 	}
 	
-	public static Set<BlackCard> getBlackCards(int cardpack, int state){
+	public static Set<BlackCard> getBlackCards(int cardpack){
 		Set<BlackCard> cards = new HashSet<BlackCard>();
 		try
 		{
 			PreparedStatement prep = BaseDAO.cardsDB.prepareStatement(
-					"select cid from card where typeid = ? and packid = ? and state = ?;");
+					"select cid from card where typeid = ? and packid = ?;");
 			prep.setInt(1, Card.TYPE_BLACK);
 			prep.setInt(2, cardpack);
-			prep.setInt(3, state);
 		    ResultSet rs = prep.executeQuery();
 		    while(rs.next()){
 		    	long cid = rs.getLong("cid");

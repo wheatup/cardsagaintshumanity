@@ -157,6 +157,10 @@ var Util = (function () {
         p.fish = data.fish;
         return p;
     };
+    Util.convertRoomData = function (data) {
+        var r = new Room();
+        return r;
+    };
     Util.safeString = function (text) {
         text = text.replace(/"/g, "\\\"");
         text = text.replace(/'/g, "\\'");
@@ -463,7 +467,7 @@ var LobbyState = (function () {
         jQuery("#playersArea").empty();
     };
     LobbyState.prototype.showLobbyPage = function (myinfo) {
-        //this.clearLobbyPage();
+        this.clearLobbyPage();
         this.bindEvents();
         jQuery("#lobbyPage").show();
         this.clearChatArea();
@@ -521,6 +525,10 @@ var LobbyState = (function () {
             this.addOnePlayer(Util.convertPlayerData(data.players[i]));
         }
         this.updatePlayerList();
+        this.rooms = new Array();
+        for (var i = 0; i < data.players.length; i++) {
+            this.addOnePlayer(Util.convertPlayerData(data.players[i]));
+        }
     };
     LobbyState.prototype.onReceiveText = function (data, _this) {
         var pid = parseInt(data.pid);

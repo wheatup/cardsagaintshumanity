@@ -19,7 +19,6 @@ import javax.json.JsonWriter;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.game.GameWorld;
 import cc.cafebabe.cardagainsthumanity.game.Lobby;
-import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
 import cc.cafebabe.cardagainsthumanity.game.Room;
 import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
@@ -172,6 +171,9 @@ public class Json2Map
 		case PLAYERENTER:
 			map.put("t", "playerenter");
 			break;
+		case INFO:
+			map.put("t", "info");
+			break;
 		default:
 			map.put("t", "d");
 			break;
@@ -197,23 +199,7 @@ public class Json2Map
 	public static Map<String, Object> buildLobbyInfo(Lobby lobby){
 		Map<String, Object> map = BuildMapByType(MessageType.LOBBYINFO);
 		map.put("players", lobby.buildPlayersInfo());
-		return map;
-	}
-	
-	public static Map<String, Object> buildRoomInfo(Room room){
-		Map<String, Object> map = BuildMapByType(MessageType.ROOMINFO);
-		map.put("players", room.buildPlayersInfo());
-		map.put("spectators", room.buildSpectatorsInfo());
-		map.put("id", room.getId());
-		map.put("name", room.getName());
-		if(room.getCardpacks() != null){
-			String cardpacks = "";
-			for(int i : room.getCardpacks()){
-				cardpacks+=CardsService.cardpacks.get(i) + ",";
-			}
-			cardpacks = cardpacks.substring(0, cardpacks.length() - 1);
-			map.put("cardpacks", cardpacks);
-		}
+		map.put("rooms", lobby.buildRoomsInfo());
 		return map;
 	}
 	
@@ -237,6 +223,30 @@ public class Json2Map
 		hma.addMap(player.buildPlayerInfo());
 		map.put("player", hma);
 		map.put("spectate", spectate);
+		return map;
+	}
+	
+	public static Map<String, Object> buildRoomInfo(Room room){
+		Map<String, Object> map = BuildMapByType(MessageType.ROOMINFO);
+		map.put("players", room.buildPlayersInfo());
+		map.put("spectators", room.buildSpectatorsInfo());
+		map.put("id", room.getId());
+		map.put("name", room.getName());
+		if(room.getCardpacks() != null){
+			String cardpacks = "";
+			for(int i : room.getCardpacks()){
+				cardpacks+=CardsService.cardpacks.get(i) + ",";
+			}
+			cardpacks = cardpacks.substring(0, cardpacks.length() - 1);
+			map.put("cardpacks", cardpacks);
+		}
+		return map;
+	}
+	
+	public static Map<String, Object> buildCardPacksInfo(){
+		Map<String, Object> map = BuildMapByType(MessageType.INFO);
+		map.put("k", "cp");
+		map.put("cp", CardsService.buildCardPacksInfo());
 		return map;
 	}
 }

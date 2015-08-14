@@ -19,6 +19,7 @@ public class GameWorld extends PlayerContainer{
 	
 	public void sendPlayerInWorld(Player player){
 		addPlayer(player);
+		player.sendMessage(Json2Map.buildCardPacksInfo());
 		player.sendMessage(Json2Map.toJSONString(Json2Map.buildMyInfo(player)));
 		getLobby().sendPlayerInLobby(player);
 	}

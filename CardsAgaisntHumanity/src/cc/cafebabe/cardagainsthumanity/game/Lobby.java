@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public class Lobby extends PlayerContainer{
@@ -47,5 +48,14 @@ public class Lobby extends PlayerContainer{
 	public void destroyRoom(int id){
 		rooms.remove(id);
 		broadcastMessage(Json2Map.BuildKVMessage("destroyroom", id));
+	}
+	
+	
+	public HashMapArray buildRoomsInfo(){
+		HashMapArray arr = new HashMapArray();
+		for(Room r: rooms.values()){
+			arr.addMap(r.buildRoomShortInfo());
+		}
+		return arr;
 	}
 }

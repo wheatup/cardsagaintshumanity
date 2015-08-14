@@ -1,13 +1,16 @@
 package cc.cafebabe.cardagainsthumanity.game;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.server.Server;
+import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
+import cc.cafebabe.cardagainsthumanity.util.MessageType;
 
 public class Room extends PlayerContainer{
 	public static final int MAX_PLAYER = 8;
@@ -17,37 +20,34 @@ public class Room extends PlayerContainer{
 	
 	private int id;
 	private String name;
-	private Player host;
-	private int[] cardpacks;
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
-	public Player getHost() {
-		return host;
-	}
-	public void setHost(Player host) {
-		this.host = host;
-		host.sendMessage(Json2Map.BuildFlagMessage("host"));
-	}
-	public int[] getCardpacks() {
-		return cardpacks;
-	}
-	public void setCardpacks(int[] cardpacks) {
-		this.cardpacks = cardpacks;
-	}
+	private String password;
 	private Round round;
 	private SpectateArea spectateArea;
+	private Player host;
+	private int[] cardpacks;
+	
 	public Room(int id){
 		spectateArea = new SpectateArea(this);
 		this.id = id;
 		this.name = "Ä¬ÈÏ·¿¼ä";
 		this.orderedPlayer = new ArrayList<Player>();
+		this.password = "";
 	}
 	public int getId() {return id;}
 	public void setId(int id) {this.id = id;}
+	public String getPassword(){return password;}
+	public void setPassword(String password){this.password = password;}
+	public Round getRound(){return round;}
+	public void setRound(Round round){this.round = round;}
+	public String getName() {return name;}
+	public void setName(String name) {this.name = name;}
+	public Player getHost() {return host;}
+	public void setHost(Player host) {
+		this.host = host;
+		host.sendMessage(Json2Map.BuildFlagMessage("host"));
+	}
+	public int[] getCardpacks() {return cardpacks;}
+	public void setCardpacks(int[] cardpacks) {this.cardpacks = cardpacks;}
 	
 	public void broadcastMessage(String message){
 		super.broadcastMessage(message);
@@ -128,5 +128,26 @@ public class Room extends PlayerContainer{
 			arr.addMap(p.buildPlayerInfo());
 		}
 		return arr;
+	}
+	
+	public Map<String, Object> buildRoomShortInfo(){
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", id);
+		map.put("name", name);
+		map.put("pw", password);
+		map.put("pc", players.size());
+		map.put("sc", spectateArea.players.size());
+		map.put("state", getRound() == null ? 0 : getRound().getState());
+		String cardpacks = "";
+		if(getCardpacks() != null){
+			
+			for(int i : getCardpacks()){
+				cardpacks+=CardsService.cardpacks.get(i) + ",";
+			}
+			cardpacks = cardpacks.substring(0, cardpacks.length() - 1);
+			map.put("cardpacks", cardpacks);
+		}
+		map.put("cp", cardpacks);
+		return map;
 	}
 }

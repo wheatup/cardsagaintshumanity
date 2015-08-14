@@ -172,6 +172,12 @@ class Util {
 		return p;
 	}
 
+	public static convertRoomData(data: any): Room {
+		var r: Room = new Room();
+
+		return r;
+	}
+
 	public static safeString(text: string): string {
 		text = text.replace(/"/g, "\\\"");
 		text = text.replace(/'/g, "\\'");
@@ -485,7 +491,7 @@ class LoginState {
 
 class LobbyState {
     private players: Array<Player>;
-    private room: Array<Room>;
+    private rooms: Array<Room>;
     private canCreateRoom: boolean = false;
 
 	public constructor() {
@@ -510,7 +516,7 @@ class LobbyState {
     }
 
     public showLobbyPage(myinfo: any): void {
-        //this.clearLobbyPage();
+        this.clearLobbyPage();
 		this.bindEvents();
         jQuery("#lobbyPage").show();
 		this.clearChatArea();
@@ -573,6 +579,12 @@ class LobbyState {
 			this.addOnePlayer(Util.convertPlayerData(data.players[i]));
 		}
 		this.updatePlayerList();
+
+		this.rooms = new Array<Room>();
+		for (var i = 0; i < data.players.length; i++) {
+			this.addOnePlayer(Util.convertPlayerData(data.players[i]));
+		}
+
     }
 
 	public onReceiveText(data: any, _this: LobbyState): void {

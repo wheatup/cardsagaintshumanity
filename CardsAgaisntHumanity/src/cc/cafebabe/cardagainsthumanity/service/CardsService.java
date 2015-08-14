@@ -8,44 +8,23 @@ import java.util.Set;
 import cc.cafebabe.cardagainsthumanity.dao.CardsDAO;
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Card;
+import cc.cafebabe.cardagainsthumanity.entities.CardPack;
 import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
+import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Misc;
 
 public class CardsService
 {
-	public static Map<Integer, String> cardpacks;
-	public static Map<Integer, Set<WhiteCard>> whitecards;
-	public static Map<Integer, Set<BlackCard>> blackcards;
+	public static Map<Integer, CardPack> cardpacks;
 	
 	public static void loadAllCards(){
 		cardpacks = CardsDAO.getCardsPacks();
-		loadBlackCards();
-		loadWhiteCards();
-	}
-	
-	private static void loadBlackCards(){
-		blackcards = new HashMap<Integer, Set<BlackCard>>();
-		for(Integer i : cardpacks.keySet()){
-			Set<BlackCard> cards = CardsDAO.getBlackCards(i, Card.STATE_APPROVED);
-			if(cards != null){
-				blackcards.put(i, cards);
-			}
-		}
-	}
-	
-	private static void loadWhiteCards(){
-		whitecards = new HashMap<Integer, Set<WhiteCard>>();
-		for(Integer i : cardpacks.keySet()){
-			Set<WhiteCard> cards = CardsDAO.getWhiteCards(i, Card.STATE_APPROVED);
-			if(cards != null)
-				whitecards.put(i, cards);
-		}
 	}
 	
 	public static Set<WhiteCard> getWhiteCardsByPacks(int[] packids){
 		Set<WhiteCard> cards = new HashSet<WhiteCard>();
 		for(int i : packids){
-			Set<WhiteCard> tempSet = whitecards.get(i);
+			Set<WhiteCard> tempSet = cardpacks.get(i).getWhiteCards();
 			if(tempSet != null)
 				cards.addAll(tempSet);
 		}
@@ -55,7 +34,7 @@ public class CardsService
 	public static Set<BlackCard> getBlackCardsByPacks(int[] packids){
 		Set<BlackCard> cards = new HashSet<BlackCard>();
 		for(int i : packids){
-			Set<BlackCard> tempSet = blackcards.get(i);
+			Set<BlackCard> tempSet = cardpacks.get(i).getBlackCards();
 			if(tempSet != null)
 				cards.addAll(tempSet);
 		}
@@ -67,7 +46,7 @@ public class CardsService
 		for(String name : packids){
 			int packid = CardsDAO.getCardPackId(name);
 			if(packid != -1){
-				Set<WhiteCard> tempSet = whitecards.get(packid);
+				Set<WhiteCard> tempSet = cardpacks.get(packid).getWhiteCards();
 				if(tempSet != null)
 				cards.addAll(tempSet);
 			}
@@ -80,7 +59,7 @@ public class CardsService
 		for(String name : packids){
 			int packid = CardsDAO.getCardPackId(name);
 			if(packid != -1){
-				Set<BlackCard> tempSet = blackcards.get(packid);
+				Set<BlackCard> tempSet = cardpacks.get(packid).getBlackCards();
 				if(tempSet != null)
 				cards.addAll(tempSet);
 			}
@@ -140,5 +119,18 @@ public class CardsService
 	
 	public static void approveAllCards(){
 		CardsDAO.approveAllCards();
+	}
+	
+	public static HashMapArray buildCardPacksInfo(){
+		HashMapArray hma = new HashMapArray();
+		for(int i : cardpacks.keySet()){
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("id", cardpacks.get(i).getPackid());
+			map.put("name", cardpacks.get(i).getPackname());
+			map.put("lv", cardpacks.get(i).getNeedLevel());
+			hma.addMap(map);
+		}
+		
+		return hma;
 	}
 }
