@@ -3,24 +3,31 @@ package cc.cafebabe.cardagainsthumanity.dao;
 import java.util.Set;
 
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
+import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
 public class DAOIniter
 {
+	public static boolean isWriting = false;
 	public static void init()
 	{
 		BaseDAO.init();
 		PlayerDAO.init();
 		GameDataDAO.init();
 		CardsDAO.init();
+		SugDAO.init();
 		initData();
 	}
 	
 	private static void initData(){
 		long startTime = System.currentTimeMillis();
-		PlayerService.logOrRegPlayer("admin", "oipoi123zxc", "0.0.0.0");
+		Player p = PlayerService.logOrRegPlayer("admin", "1234", "0.0.0.0");
+		if(p != null){
+			p.setState(2);
+			p.savePlayerData();
+		}
 		CardsService.addCardPack("基本卡牌包", 0);
 		CardsService.addCardPack("基本卡牌包EX", 5);
 		CardsService.addBlackCard(1, "测试黑卡%b1。", "基本卡牌包");
@@ -62,7 +69,9 @@ public class DAOIniter
 					{
 						e.printStackTrace();
 					}
+					DAOIniter.isWriting = true;
 					BaseDAO.commit();
+					DAOIniter.isWriting = false;
 				}
 			}
 		}).start();;

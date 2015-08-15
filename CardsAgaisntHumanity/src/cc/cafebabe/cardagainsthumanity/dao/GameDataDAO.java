@@ -44,24 +44,26 @@ public class GameDataDAO
 	 * @return
 	 */
 	public static GameData createGameData(long pid){
-	    PreparedStatement prep;
-		try
-		{
-			prep = BaseDAO.playersDB.prepareStatement("insert into gamedata values (?, ?, ?, ?, ?);");
-			prep.setLong(1, pid);
-		    prep.setInt(2, 0);
-		    prep.setInt(3, 0);
-		    prep.setInt(4, 0);
-		    prep.setString(5, "");
-		    prep.executeUpdate();
-		    prep.close();
-		    //BaseDAO.playersDB.commit();
+		synchronized(BaseDAO.playersDB){
+		    PreparedStatement prep;
+			try
+			{
+				prep = BaseDAO.playersDB.prepareStatement("insert into gamedata values (?, ?, ?, ?, ?);");
+				prep.setLong(1, pid);
+			    prep.setInt(2, 0);
+			    prep.setInt(3, 0);
+			    prep.setInt(4, 0);
+			    prep.setString(5, "");
+			    prep.executeUpdate();
+			    prep.close();
+			    //BaseDAO.playersDB.commit();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+			return getGameData(pid);
 		}
-		catch(SQLException e)
-		{
-			e.printStackTrace();
-		}
-		return getGameData(pid);
 	}
 	
 	/**
@@ -70,34 +72,36 @@ public class GameDataDAO
 	 * @return 游戏数据对象
 	 */
 	public static GameData getGameData(long pid){
-		GameData data = null;
-	    PreparedStatement prep;
-		try
-		{
-			prep = BaseDAO.playersDB.prepareStatement("select credit, fish, exp, ext from gamedata where pid = ?;");
-			prep.setLong(1, pid);
-			ResultSet rs = prep.executeQuery();
-			if(rs.next()){
-				int credit = rs.getInt("credit");
-				int fish = rs.getInt("fish");
-				int exp = rs.getInt("exp");
-				data = new GameData(pid, credit, fish, exp);
-				String ext = rs.getString("ext");
-				if(ext != null && ext.length() > 0){
-					Map<String, Object> map = Json2Map.readFromJson(ext);
-					if(map.size() > 0){
-						data.setData(map);
+		synchronized(BaseDAO.playersDB){
+			GameData data = null;
+		    PreparedStatement prep;
+			try
+			{
+				prep = BaseDAO.playersDB.prepareStatement("select credit, fish, exp, ext from gamedata where pid = ?;");
+				prep.setLong(1, pid);
+				ResultSet rs = prep.executeQuery();
+				if(rs.next()){
+					int credit = rs.getInt("credit");
+					int fish = rs.getInt("fish");
+					int exp = rs.getInt("exp");
+					data = new GameData(pid, credit, fish, exp);
+					String ext = rs.getString("ext");
+					if(ext != null && ext.length() > 0){
+						Map<String, Object> map = Json2Map.readFromJson(ext);
+						if(map.size() > 0){
+							data.setData(map);
+						}
 					}
 				}
+				rs.close();
+				prep.close();
 			}
-			rs.close();
-			prep.close();
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		    return data;
 		}
-		catch(SQLException e)
-		{
-			e.printStackTrace();
-		}
-	    return data;
 	}
 
 	/**
@@ -105,22 +109,24 @@ public class GameDataDAO
 	 * @param 游戏数据
 	 */
 	public static void saveGameData(GameData gameData){
-		PreparedStatement prep;
-		try
-		{
-			prep = BaseDAO.playersDB.prepareStatement("update gamedata set credit = ?, fish = ?, exp = ?, ext = ? where pid = ?;");
-		    prep.setInt(1, gameData.getCredit());
-		    prep.setInt(2, gameData.getFish());
-		    prep.setInt(3, gameData.getExp());
-		    prep.setString(4, Json2Map.toJSONString(gameData.getData()));
-		    prep.setLong(5, gameData.getPid());
-		    prep.executeUpdate();
-			prep.close();
-			//BaseDAO.playersDB.commit();
-		}
-		catch(SQLException e)
-		{
-			e.printStackTrace();
+		synchronized(BaseDAO.playersDB){
+			PreparedStatement prep;
+			try
+			{
+				prep = BaseDAO.playersDB.prepareStatement("update gamedata set credit = ?, fish = ?, exp = ?, ext = ? where pid = ?;");
+			    prep.setInt(1, gameData.getCredit());
+			    prep.setInt(2, gameData.getFish());
+			    prep.setInt(3, gameData.getExp());
+			    prep.setString(4, Json2Map.toJSONString(gameData.getData()));
+			    prep.setLong(5, gameData.getPid());
+			    prep.executeUpdate();
+				prep.close();
+				//BaseDAO.playersDB.commit();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 }

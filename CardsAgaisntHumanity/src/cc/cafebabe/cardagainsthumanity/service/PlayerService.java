@@ -61,4 +61,20 @@ public class PlayerService
 		if(player == null) return;
 		PlayerDAO.deletePlayer(player.getPid());
 	}
+	
+	public static void banPlayer(String name){
+		PlayerDAO.banPlayer(name);
+	}
+	
+	public static void unbanPlayer(String name){
+		PlayerDAO.unbanPlayer(name);
+	}
+	
+	public static void opPlayer(String name){
+		PlayerDAO.opPlayer(name);
+	}
+	
+	public static void deopPlayer(String name){
+		PlayerDAO.deopPlayer(name);
+	}
 }

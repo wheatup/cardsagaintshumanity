@@ -10,7 +10,6 @@ import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
-import cc.cafebabe.cardagainsthumanity.util.MessageType;
 
 public class Room extends PlayerContainer{
 	public static final int MAX_PLAYER = 8;

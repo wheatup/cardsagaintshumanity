@@ -127,7 +127,7 @@ public class Json2Map
 	
 	public static Map<String, Object> BuildTextMessage(String msg)
 	{
-		return BuildTextMessage(-1, msg);
+		return BuildTextMessage(0, msg);
 	}
 	
 	public static Map<String, Object> BuildTextMessage(long pid, String msg)
@@ -181,6 +181,12 @@ public class Json2Map
 			break;
 		case SWITCHPLACE:
 			map.put("t", "onswitch");
+			break;
+		case CARDSENDED:
+			map.put("t", "cardsended");
+			break;
+		case PEND:
+			map.put("t", "pend");
 			break;
 		default:
 			map.put("t", "d");
@@ -270,6 +276,21 @@ public class Json2Map
 		Map<String, Object> map = BuildMapByType(MessageType.SWITCHPLACE);
 		map.put("pid", id);
 		map.put("place", place);
+		return map;
+	}
+	
+	public static Map<String, Object> buildCardSendedInfo(int total, int success, int repeat, int illegal){
+		Map<String, Object> map = BuildMapByType(MessageType.CARDSENDED);
+		map.put("to", total);
+		map.put("su", success);
+		map.put("re", repeat);
+		map.put("il", illegal);
+		return map;
+	}
+	
+	public static Map<String, Object> buildPendingInfo(){
+		Map<String, Object> map = BuildMapByType(MessageType.PEND);
+		map.put("c", CardsService.buildAllPendingCardsInfo());
 		return map;
 	}
 }

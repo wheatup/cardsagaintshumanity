@@ -7,14 +7,18 @@ import java.sql.SQLException;
 public class BaseDAO {
 	public static Connection playersDB;
 	public static Connection cardsDB;
+	public static Connection sugDB;
 	public static boolean resetMode = false;
+	public static Integer lock = 1;
 	public static void init(){
 		try {
 			Class.forName("org.sqlite.JDBC");
 			playersDB = DriverManager.getConnection("jdbc:sqlite://c:/CAH2Data/players.db");
 			cardsDB = DriverManager.getConnection("jdbc:sqlite://c:/CAH2Data/cards.db");
+			sugDB = DriverManager.getConnection("jdbc:sqlite://c:/CAH2Data/sug.db");
 			BaseDAO.playersDB.setAutoCommit(false);
 			BaseDAO.cardsDB.setAutoCommit(false);
+			BaseDAO.sugDB.setAutoCommit(false);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
@@ -23,37 +27,65 @@ public class BaseDAO {
 	}
 	
 	public static void close(){
-		if(playersDB != null){
-			try {
-				playersDB.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
+		synchronized (playersDB) {
+			if(playersDB != null){
+				try {
+					playersDB.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
-		if(cardsDB != null){
-			try {
-				cardsDB.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
+		synchronized (cardsDB) {
+			if(cardsDB != null){
+				try {
+					cardsDB.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		synchronized (sugDB) {
+			if(sugDB != null){
+				try {
+					sugDB.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
 	
 	public static void commit(){
-		if(playersDB != null){
-			try {
-				playersDB.commit();
-			} catch (SQLException e) {
-				e.printStackTrace();
+		synchronized (playersDB) {
+			if(playersDB != null){
+				try {
+					playersDB.commit();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
-		if(cardsDB != null){
-			try {
-				cardsDB.commit();
-			} catch (SQLException e) {
-				e.printStackTrace();
+		synchronized (cardsDB) {
+			if(cardsDB != null){
+				try {
+					cardsDB.commit();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		synchronized (sugDB) {
+			if(sugDB != null){
+				try {
+					sugDB.commit();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}

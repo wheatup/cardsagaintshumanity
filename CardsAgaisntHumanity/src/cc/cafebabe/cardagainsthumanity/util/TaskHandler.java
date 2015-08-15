@@ -7,11 +7,15 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.websocket.Session;
 
+import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.game.GameWorld;
 import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
 import cc.cafebabe.cardagainsthumanity.game.Room;
 import cc.cafebabe.cardagainsthumanity.server.Server;
+import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
+import cc.cafebabe.cardagainsthumanity.service.SugService;
 
 public class TaskHandler implements Runnable {
 	private boolean running = false;
@@ -128,7 +132,31 @@ public class TaskHandler implements Runnable {
 				e.printStackTrace();
 			}
 			return;
+		}else if(player.getState() == 1){
+			try
+			{
+				session.getBasicRemote().sendText(Json2Map.toJSONString(Json2Map.BuildKVMessage("logerr", 104)));
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace();
+			}
+			return;
+		}else if(Server.gameWorld.getPlayerCount() >= GameWorld.MAX_PLAYER){
+			if(player.getState() != 2){
+				try
+				{
+					session.getBasicRemote().sendText(Json2Map.toJSONString(Json2Map.BuildKVMessage("logerr", 105)));
+				}
+				catch(IOException e)
+				{
+					e.printStackTrace();
+				}
+				return;
+			}
 		}
+		
+		
 		player.setSession(session);
 		Server.gameWorld.sendPlayerInWorld(player);
 	}
@@ -152,7 +180,11 @@ public class TaskHandler implements Runnable {
 			if(text == null || text.length() == 0 || text.length() > 200) return;
 			PlayerContainer container = player.getContainer();
 			if(container == null) return;
-			container.broadcastMessage(Json2Map.BuildTextMessage(player.getPid(), text));
+			if(text.startsWith("/")){
+				handlePlayerCommand(player, text.substring(1).split("\\s"));
+			}else{
+				container.broadcastMessage(Json2Map.BuildTextMessage(player.getPid(), text));
+			}
 		}
 		//接收到创建房间消息
 		else if(key.equals("createroom")){
@@ -208,11 +240,223 @@ public class TaskHandler implements Runnable {
 				}
 			}
 		}
+		//接受创建卡牌消息
+		else if(key.equals("createcard")){
+			String rawCardType = (String) map.get("cardType");
+			String rawCardPack = (String) map.get("cardPack");
+			String text = (String) map.get("text");
+			int cardType = -1;
+			int cardPack = -1;
+			try{
+				cardType = Integer.parseInt(rawCardType);
+				cardPack = Integer.parseInt(rawCardPack);
+			}catch(Exception e){}
+			if((cardType != 0 && cardType != 1) || text == null || text.length() == 0 || text.length() > 200 || !CardsService.cardpacks.containsKey(cardPack)){
+				player.sendMessage(Json2Map.buildCardSendedInfo(0, 0, 0, 0));
+				return;
+			}
+			
+			String[] cards = text.split("\\|");
+			if(cards.length == 0){
+				player.sendMessage(Json2Map.buildCardSendedInfo(0, 0, 0, 0));
+				return;
+			}
+			
+			int total = cards.length;
+			int success = 0;
+			int repeat = 0;
+			int illegal = 0;
+			
+			if(cardType == 0){
+				for(String s : cards){
+					int blanks = Misc.getSubstringCount(s, BlackCard.BLANK_SUP);
+					if(blanks == 0 || blanks > 3){
+						illegal++;
+						continue;
+					}
+
+					if(CardsService.addBlackCard(player.getPid(), s, cardPack)){
+						success++;
+					}else{
+						repeat++;
+					}
+				}
+			}else{
+				for(String s : cards){
+					if(CardsService.addWhiteCard(player.getPid(), s, cardPack)){
+						success++;
+					}else{
+						repeat++;
+					}
+				}
+			}
+			
+			player.sendMessage(Json2Map.buildCardSendedInfo(total, success, repeat, illegal));
+		}
+		//接受建议消息
+		else if(key.equals("sug")){
+			String text = (String) map.get("text");
+			if(text != null && text.length() > 0){
+				SugService.AddSug(player.getPid(), text);
+			}
+		}
+		//接受审核完毕卡牌消息
+		else if(key.equals("pendover")){
+			
+		}
 	}
 	
 	public void addTask(Task task){
 		synchronized (tasks) {
 			tasks.add(task);
+		}
+	}
+	
+	public void handlePlayerCommand(Player player, String[] texts){
+		if(texts == null || texts.length == 0){
+			player.sendMessage(Json2Map.BuildFlagMessage("uc"));
+		}
+		
+		String command = texts[0];
+		if("changepassword".equals(command)){
+			if(texts.length != 3){
+				player.sendMessage(Json2Map.BuildTextMessage("用法：/changepassword 旧密码 新密码"));
+				return;
+			}
+			
+			String oldPassword = texts[1];
+			String newPassword = texts[2];
+			
+			if(!player.getPassword().equals(oldPassword)){
+				player.sendMessage(Json2Map.BuildTextMessage("旧密码输入错误，密码更改失败！"));
+			}else if(newPassword.length() < 4){
+				player.sendMessage(Json2Map.BuildTextMessage("新密码太短，至少4位！"));
+			}else if(newPassword.length() > 20){
+				player.sendMessage(Json2Map.BuildTextMessage("新密码太长，最多20位！"));
+			}else{
+				player.setPassword(newPassword);
+				player.savePlayerData();
+				player.sendMessage(Json2Map.BuildTextMessage("密码修改成功！下次请使用新密码登录！"));
+			}
+		}else if("ping".equals(command)){
+			player.sendMessage(Json2Map.BuildTextMessage("pong"));
+		}else if("help".equals(command)){
+			player.sendMessage(Json2Map.BuildTextMessage("暂无帮助喵~"));
+		}else if("color".equals(command)){
+			player.sendMessage(Json2Map.BuildTextMessage("不交450还想换颜色？"));
+		}else if("suicide".equals(command)){
+			player.sendMessage(Json2Map.BuildTextMessage("我差点笑出声"));
+		}else if("where".equals(command)){
+			if(texts.length != 2){
+				player.sendMessage(Json2Map.BuildTextMessage("用法：/where 玩家名"));
+				return;
+			}
+			String name = texts[1];
+			Player p = Server.gameWorld.getPlayer(name);
+			if(p == null){
+				player.sendMessage(Json2Map.BuildTextMessage(name + " 不在线！"));
+			}else if(p.getRoomNumber() == 0){
+				player.sendMessage(Json2Map.BuildTextMessage(name + " 正在大厅。"));
+			}else{
+				player.sendMessage(Json2Map.BuildTextMessage(name + " 在" + p.getRoomNumber() + "号房。"));
+			}
+		}
+		
+		
+		//管理员命令
+		else if("pend".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				player.sendMessage(Json2Map.buildPendingInfo());
+			}
+		}else if("op".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 2 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/op 玩家名"));
+					return;
+				}
+				
+				String name = texts[1];
+				PlayerService.opPlayer(name);
+				player.sendMessage(Json2Map.BuildTextMessage("已将该玩家设置为OP！"));
+				Player p = Server.gameWorld.getPlayer(name);
+				if(p != null)
+					p.sendMessage(Json2Map.BuildTextMessage("您已被" + player.getName() + "设置为OP！"));
+			}
+		}else if("deop".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 2 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/deop 玩家名"));
+					return;
+				}
+				
+				String name = texts[1];
+				PlayerService.opPlayer(name);
+				player.sendMessage(Json2Map.BuildTextMessage("已取消该玩家OP！"));
+				Player p = Server.gameWorld.getPlayer(name);
+				if(p != null)
+					p.sendMessage(Json2Map.BuildTextMessage("您已被" + player.getName() + "取消OP！"));
+			}
+		}else if("ban".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 2 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/ban 玩家名"));
+				}else{
+					String name = texts[1];
+					PlayerService.banPlayer(name);
+					player.sendMessage(Json2Map.BuildTextMessage("已ban该玩家！"));
+					Player p = Server.gameWorld.getPlayer(name);
+					if(p != null)
+						p.sendMessage(Json2Map.BuildFlagMessage("ban"));
+				}
+			}
+		}else if("unban".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				String name = texts[1];
+				PlayerService.unbanPlayer(name);
+				player.sendMessage(Json2Map.BuildTextMessage("已取消ban该玩家！"));
+			}
+		}else if("kick".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 2 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/kick 玩家名"));
+				}else{
+					String name = texts[1];
+					
+					Player p = Server.gameWorld.getPlayer(name);
+					if(p == null){
+						player.sendMessage(Json2Map.BuildTextMessage("该玩家不存在或不在线！"));
+						return;
+					}else{
+						
+						player.sendMessage(Json2Map.BuildTextMessage("已将该玩家踢出游戏！"));
+						p.sendMessage(Json2Map.BuildFlagMessage("kick"));
+						Server.gameWorld.removePlayerFromWorld(p);
+					}
+				}
+			}
+		}else if("refresh".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				Server.gameWorld.broadcastMessage(Json2Map.BuildFlagMessage("quit"));
+			}
+		}
+		
+		
+		else{
+			player.sendMessage(Json2Map.BuildFlagMessage("uc"));
 		}
 	}
 }

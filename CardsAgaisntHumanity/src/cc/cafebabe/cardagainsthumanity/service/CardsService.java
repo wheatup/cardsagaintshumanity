@@ -68,6 +68,16 @@ public class CardsService
 	}
 	
 	public static boolean addWhiteCard(long pid, String text, String cardpack){
+		int packid = CardsDAO.getCardPackId(cardpack);
+		if(packid == -1){
+			return false;
+		}
+		if(packid != -1)
+			return addWhiteCard(pid, text, packid);
+		return false;
+	}
+	
+	public static boolean addWhiteCard(long pid, String text, int cardpack){
 		if(text == null || text.length() > 200 || text.length() == 0){
 			return false;
 		}
@@ -75,19 +85,19 @@ public class CardsService
 		if(CardsDAO.isCardExist(text)){
 			return false;
 		}
-		
-		int packid = CardsDAO.getCardPackId(cardpack);
-		
-		if(packid == -1){
-			return false;
-		}
-		
-		CardsDAO.createCard(Card.TYPE_WHITE, packid, pid, text, Card.STATE_PENDING);
+		CardsDAO.createCard(Card.TYPE_WHITE, cardpack, pid, text, Card.STATE_PENDING);
 		
 		return true;
 	}
 	
 	public static boolean addBlackCard(long pid, String text, String cardpack){
+		int packid = CardsDAO.getCardPackId(cardpack);
+		if(packid != -1)
+			return addBlackCard(pid, text, packid);
+		return false;
+	}
+	
+	public static boolean addBlackCard(long pid, String text, int cardpack){
 		if(text == null || text.length() > 200 || text.length() == 0){
 			return false;
 		}
@@ -98,13 +108,7 @@ public class CardsService
 		if(CardsDAO.isCardExist(text)){
 			return false;
 		}
-		int packid = CardsDAO.getCardPackId(cardpack);
-		
-		if(packid == -1){
-			return false;
-		}
-		CardsDAO.createCard(Card.TYPE_BLACK, packid, pid, text, Card.STATE_PENDING);
-		
+		CardsDAO.createCard(Card.TYPE_BLACK, cardpack, pid, text, Card.STATE_PENDING);
 		return true;
 	}
 	
@@ -128,9 +132,33 @@ public class CardsService
 			map.put("id", cardpacks.get(i).getPackid());
 			map.put("name", cardpacks.get(i).getPackname());
 			map.put("lv", cardpacks.get(i).getNeedLevel());
+			map.put("bc", cardpacks.get(i).getBlackCards().size());
+			map.put("wc", cardpacks.get(i).getWhiteCards().size());
 			hma.addMap(map);
 		}
 		
+		return hma;
+	}
+	
+	public static Set<Card> getAllPendingCards(){
+		return CardsDAO.getPendingCards();
+	}
+	
+	public static HashMapArray buildAllPendingCardsInfo(){
+		System.out.println("ass");
+		HashMapArray hma = new HashMapArray();
+		Set<Card> cards = getAllPendingCards();
+		if(cards != null)
+		for(Card c : cards){
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("id", c.getCid());
+			map.put("pl", c.getPname());
+			map.put("pa", c.getPackname());
+			map.put("ty", c.getTypeid());
+			map.put("cp", c.getPackid());
+			map.put("te", c.getText());
+			hma.addMap(map);
+		}
 		return hma;
 	}
 }

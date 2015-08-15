@@ -4,6 +4,7 @@ var GameSettings = (function () {
     GameSettings.Server = "ws://localhost:4849/CardsAgaisntHumanity/server";
     GameSettings.AllowMulti = true;
     GameSettings.debugMode = true;
+    GameSettings.help = "<br>/changepassword 更改密码<br>/where 查询玩家位置";
     return GameSettings;
 })();
 var MyEvent = (function () {
@@ -287,6 +288,10 @@ var PackageBuilder = (function () {
         return pack;
     };
     PackageBuilder.buildTextPackage = function (text) {
+        //if (text.substr(0,5) == "/help") {
+        //    Util.showMessage(GameSettings.help);
+        //    return;
+        //}
         text = Util.safeString(text);
         var pack = '{"t":"text", "text":"' + text + '"}';
         return pack;
@@ -309,6 +314,16 @@ var PackageBuilder = (function () {
     };
     PackageBuilder.buildSwitchPlacePackage = function (place) {
         var pack = '{"t":"switch", "place":"' + place + '"}';
+        return pack;
+    };
+    PackageBuilder.buildCreateCardPackage = function (cardType, cardPack, text) {
+        text = Util.safeString(text);
+        var pack = '{"t":"createcard", "cardType":"' + cardType + '", "cardPack":"' + cardPack + '", "text":"' + text + '"}';
+        return pack;
+    };
+    PackageBuilder.buildCreateSugPackage = function (text) {
+        text = Util.safeString(text);
+        var pack = '{"t":"sug", "text":"' + text + '"}';
         return pack;
     };
     return PackageBuilder;
@@ -349,6 +364,13 @@ var Signal = (function () {
     Signal.OnClickLeave = "returnlobby";
     Signal.OnClickSwitchButton = "switchplace";
     Signal.OnPlayerSwitch = "onswitch";
+    Signal.OnClickCloseSettings = "OnClickCloseSettings";
+    Signal.OnClickCreateCard = "OnClickCreateCard";
+    Signal.OnClickSendCard = "OnClickSendCard";
+    Signal.OnClickSendSug = "OnClickSendSug";
+    Signal.OnClickSendPend = "OnClickSendPend";
+    Signal.OnSendCardCallback = "cardsended";
+    Signal.PEND = "pend";
     return Signal;
 })();
 var Main = (function () {
@@ -369,7 +391,77 @@ var Main = (function () {
         Main.lobbyState = new LobbyState();
         Main.playState = new PlayState();
         Main.loginState.start();
+        MyEvent.bind(Signal.PEND, this.onReceivePendInfo, this);
         MyEvent.bind(Signal.INFO, this.onReceiveInfo, this);
+        MyEvent.bind("uc", function (data, _this) { Util.showMessage("未知命令！"); }, this);
+        MyEvent.bind("nc", function (data, _this) { Util.showMessage("您没有权限使用此命令！"); }, this);
+        MyEvent.bind("ban", function (data, _this) { alert("您已被服务器Ban了!"); location.reload(true); }, this);
+        MyEvent.bind("kick", function (data, _this) { alert("您已被请出游戏!"); location.reload(true); }, this);
+        MyEvent.bind("quit", function (data, _this) { alert("服务器更新!"); location.reload(true); }, this);
+        this.bindLocalEvent();
+    };
+    Main.prototype.bindLocalEvent = function () {
+        MyEvent.bind(Signal.OnClickCloseSettings, Main.OnClickCloseSettings, this);
+        MyEvent.bind(Signal.OnClickSendPend, Main.OnClickSendPend, this);
+        jQuery(".settingsPage .title .closeButton").tapOrClick(function () { MyEvent.call(Signal.OnClickCloseSettings); });
+        jQuery('#lobbyPage #inputArea #inputbox').keypress(function (event) {
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if (keycode == '13') {
+                MyEvent.call(Signal.SendText);
+            }
+        });
+        jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.SendText);
+        });
+        jQuery('#lobbyPage #createRoom').tapOrClick(function (event) {
+            MyEvent.call(Signal.ONCLICKCREATEROOM);
+        });
+        jQuery("#settingsArea #createCard").tapOrClick(function () {
+            jQuery(".settingsPage[id=createcard]").show(0);
+            jQuery("#wrapper").addClass("mask");
+            jQuery("#mask").show();
+            jQuery("#createcard #cardpack").empty();
+            for (var i = 0; i < Main.cardpacks.length; i++) {
+                var cardPack = Main.cardpacks[i];
+                if (i == 0)
+                    jQuery("#createcard #cardpack").append('<option value="' + cardPack.id + '" selected="selected">' + cardPack.name + '</option>');
+                else
+                    jQuery("#createcard #cardpack").append('<option value="' + cardPack.id + '">' + cardPack.name + '</option>');
+            }
+        });
+        jQuery("#settingsArea #suggest").tapOrClick(function () {
+            jQuery(".settingsPage[id=sug]").show(0);
+            jQuery("#wrapper").addClass("mask");
+            jQuery("#mask").show();
+        });
+        jQuery("#createcard #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendCard); });
+        jQuery("#sug #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendSug); });
+        jQuery("#pend #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendPend); });
+        jQuery('#gamePage #inputArea #inputbox').keypress(function (event) {
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if (keycode == '13') {
+                MyEvent.call(Signal.SendText);
+            }
+        });
+        jQuery('#gamePage #inputArea #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.SendText);
+        });
+        jQuery('#gamePage #leave').tapOrClick(function (event) {
+            MyEvent.call(Signal.OnClickLeave);
+        });
+        jQuery('#gamePage #spectate').tapOrClick(function (event) {
+            MyEvent.call(Signal.OnClickSwitchButton);
+        });
+    };
+    Main.OnClickCloseSettings = function (data, _this) {
+        jQuery(".settingsPage").hide();
+        jQuery("#wrapper").removeClass("mask");
+        jQuery("#mask").hide();
+    };
+    Main.OnClickSendPend = function (data, _this) {
+        jQuery(".settingsPage").hide();
+        jQuery("#wrapper").removeClass("mask");
+        jQuery("#mask").hide();
     };
     Main.prototype.onReceiveInfo = function (data, _this) {
         switch (data.k) {
@@ -380,9 +472,31 @@ var Main = (function () {
                     cp.id = data.cp[i].id;
                     cp.name = data.cp[i].name;
                     cp.level = data.cp[i].lv;
+                    cp.blackcount = data.cp[i].bc;
+                    cp.whitecount = data.cp[i].wc;
                     Main.cardpacks.push(cp);
                 }
                 break;
+        }
+    };
+    Main.getPackName = function (pid) {
+        var name = '未知';
+        for (var i = 0; i < Main.cardpacks.length; i++) {
+            var cardPack = Main.cardpacks[i];
+            name = cardPack.name;
+        }
+        return name;
+    };
+    Main.prototype.onReceivePendInfo = function (data, _this) {
+        var datas = data.c;
+        jQuery(".settingsPage[id=pend] #table").empty();
+        jQuery(".settingsPage[id=pend]").show(0);
+        jQuery("#wrapper").addClass("mask");
+        jQuery("#mask").show();
+        jQuery(".settingsPage[id=pend] #table").append('<tr><td>通过</td><td>作者</td><td>类型</td><td>卡包</td><td>内容</td></tr>');
+        for (var i = 0; i < datas.length; i++) {
+            var card = datas[i];
+            jQuery(".settingsPage[id=pend] #table").append('<tr><td><input type="checkbox" value="' + card.id + '"/></td><td>' + card.pl + '</td><td>' + (card.ty == 0 ? "黑卡" : "白卡") + '</td><td>' + Main.getPackName(card.cp) + '</td><td>' + card.te + '</td></tr>');
         }
     };
     Main.freeze = false;
@@ -494,6 +608,12 @@ var LoginState = (function () {
         else if (data == 103) {
             LoginState.setLoginTip('无法登录，该用户已经在线了！');
         }
+        else if (data == 104) {
+            LoginState.setLoginTip('无法登录，该账号已被封禁！');
+        }
+        else if (data == 105) {
+            LoginState.setLoginTip('无法登录，服务器已满！');
+        }
     };
     LoginState.prototype.onShowLobbyPage = function (data, thisObject) {
         jQuery("#loginPage").hide();
@@ -553,27 +673,23 @@ var LobbyState = (function () {
         MyEvent.bind(Signal.DESTROYROOM, this.onDestroyRoom, this);
         MyEvent.bind(Signal.ADDROOM, this.onAddRoom, this);
         MyEvent.bind(Signal.ONCLICKROOM, this.onClickRoom, this);
-        jQuery('#lobbyPage #inputArea #inputbox').keypress(function (event) {
-            var keycode = (event.keyCode ? event.keyCode : event.which);
-            if (keycode == '13') {
-                MyEvent.call(Signal.SendText);
-            }
-        });
-        jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
-            MyEvent.call(Signal.SendText);
-        });
-        jQuery("#settingsArea #createRoom").tapOrClick(function () { MyEvent.call(Signal.ONCLICKCREATEROOM); });
+        MyEvent.bind(Signal.OnClickSendCard, this.OnClickSendCard, this);
+        MyEvent.bind(Signal.OnClickSendSug, this.OnClickSendSug, this);
+        MyEvent.bind(Signal.OnSendCardCallback, this.onCardSended, this);
     };
     LobbyState.prototype.unbindEvents = function () {
-        MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
-        MyEvent.unbind(Signal.PLAYERLEAVE, this.onPlayerLeave);
-        MyEvent.unbind(Signal.TEXT, this.onReceiveText);
-        MyEvent.unbind(Signal.SendText, this.onSendText);
-        MyEvent.unbind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
-        MyEvent.unbind(Signal.RoomInfo, this.onReceiveRoomInfo);
-        MyEvent.unbind(Signal.DESTROYROOM, this.onDestroyRoom);
-        MyEvent.unbind(Signal.ADDROOM, this.onAddRoom);
-        MyEvent.unbind(Signal.ONCLICKROOM, this.onClickRoom);
+        MyEvent.unbindAll(Signal.PLAYERENTER, this.onPlayerEnter);
+        MyEvent.unbindAll(Signal.PLAYERLEAVE, this.onPlayerLeave);
+        MyEvent.unbindAll(Signal.TEXT, this.onReceiveText);
+        MyEvent.unbindAll(Signal.SendText, this.onSendText);
+        MyEvent.unbindAll(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
+        MyEvent.unbindAll(Signal.RoomInfo, this.onReceiveRoomInfo);
+        MyEvent.unbindAll(Signal.DESTROYROOM, this.onDestroyRoom);
+        MyEvent.unbindAll(Signal.ADDROOM, this.onAddRoom);
+        MyEvent.unbindAll(Signal.ONCLICKROOM, this.onClickRoom);
+        MyEvent.unbindAll(Signal.OnClickSendCard, this.OnClickSendCard);
+        MyEvent.unbindAll(Signal.OnClickSendSug, this.OnClickSendSug);
+        MyEvent.unbindAll(Signal.OnSendCardCallback, this.onCardSended);
     };
     LobbyState.prototype.onSendText = function () {
         var $text = jQuery("#lobbyPage #inputArea #inputbox")[0];
@@ -735,6 +851,63 @@ var LobbyState = (function () {
         Main.playState.showGamePage(data);
         _this.unbindEvents();
     };
+    LobbyState.prototype.OnClickSendSug = function (data, _this) {
+        var time = new Date().getTime();
+        if (time < parseInt(localStorage["lastSendTime"])) {
+            Util.showMessage("技能冷却中，剩余时间:" + Math.round((parseInt(localStorage["lastSendTime"]) - time) / 1000) + "秒");
+            Main.OnClickCloseSettings(null, null);
+            return;
+        }
+        var text = jQuery("#sug #text").val();
+        if (text == null || text.trim().length < 0) {
+            alert("文字内容不能为空!");
+            return;
+        }
+        Server.instance.send(PackageBuilder.buildCreateSugPackage(text), false, true);
+        localStorage["lastSendTime"] = new Date().getTime() + 60000;
+        Main.OnClickCloseSettings(null, null);
+        jQuery("#sug #text").val("");
+        Util.showMessage("您的意见已送出，感谢您的支持！");
+    };
+    LobbyState.prototype.OnClickSendCard = function (data, _this) {
+        var time = new Date().getTime();
+        if (time < parseInt(localStorage["lastSendTime"])) {
+            Util.showMessage("技能冷却中，剩余时间:" + Math.round((parseInt(localStorage["lastSendTime"]) - time) / 1000) + "秒");
+            Main.OnClickCloseSettings(null, null);
+            return;
+        }
+        var cardType = jQuery('#createcard input[name="cardtype"]:checked').val();
+        var cardPack = jQuery("#createcard #cardpack option:selected").val();
+        var text = jQuery("#createcard #text").val();
+        if (cardPack == 1 && Main.me.pid != 1) {
+            Util.showMessage("您没有权限向此卡牌包添加卡牌，请选择其他卡牌包！");
+            Main.OnClickCloseSettings(null, null);
+            return;
+        }
+        if (text == null || text.trim().length < 0) {
+            alert("卡牌内容不能为空!");
+            return;
+        }
+        Server.instance.send(PackageBuilder.buildCreateCardPackage(cardType, cardPack, text), true, true);
+        localStorage["lastSendTime"] = new Date().getTime() + 60000;
+        Main.OnClickCloseSettings(null, null);
+        jQuery("#createcard #text").val("");
+    };
+    LobbyState.prototype.onCardSended = function (data, _this) {
+        var total = data.to;
+        var success = data.su;
+        var repeat = data.re;
+        var illegal = data.il;
+        if (total == 0) {
+            Util.showMessage("您的填写有误，此次提交作废！");
+        }
+        else if (success == 0) {
+            Util.showMessage("您的卡牌提交失败，总数:" + total + "，成功:" + success + "，重复:" + repeat + "，失败:" + illegal + "。");
+        }
+        else {
+            Util.showMessage("您的卡牌已提交审核，总数:" + total + "，成功:" + success + "，重复:" + repeat + "，失败:" + illegal + "，感谢您的支持！");
+        }
+    };
     return LobbyState;
 })();
 var PlayState = (function () {
@@ -787,21 +960,6 @@ var PlayState = (function () {
         MyEvent.bind(Signal.LobbyInfo, this.onReturnToLobby, this);
         MyEvent.bind(Signal.OnClickSwitchButton, this.onClickSwitchButton, this);
         MyEvent.bind(Signal.OnPlayerSwitch, this.onPlayerSwitch, this);
-        jQuery('#gamePage #inputArea #inputbox').keypress(function (event) {
-            var keycode = (event.keyCode ? event.keyCode : event.which);
-            if (keycode == '13') {
-                MyEvent.call(Signal.SendText);
-            }
-        });
-        jQuery('#gamePage #inputArea #submit').tapOrClick(function (event) {
-            MyEvent.call(Signal.SendText);
-        });
-        jQuery('#gamePage #leave').tapOrClick(function (event) {
-            MyEvent.call(Signal.OnClickLeave);
-        });
-        jQuery('#gamePage #spectate').tapOrClick(function (event) {
-            MyEvent.call(Signal.OnClickSwitchButton);
-        });
     };
     PlayState.prototype.unbindEvents = function () {
         MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);

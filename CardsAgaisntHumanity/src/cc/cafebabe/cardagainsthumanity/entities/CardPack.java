@@ -9,6 +9,7 @@ public class CardPack
 	private int needLevel;
 	private Set<BlackCard> blackCards;
 	private Set<WhiteCard> whiteCards;
+	
 	public int getPackid()
 	{
 		return packid;

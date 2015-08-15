@@ -9,8 +9,9 @@
     <script src="src/script/lib/touch.js"></script>
     <script src="src/script/app.js"></script>
 </head>
-<body oncontextmenu='return false' ondragstart='return false' onselectstart='return false' onselect='return false'>
-    <div id="wrapper">
+<body oncontextmenu='return false'>
+    <div id="wrapper" ondragstart='return false' onselectstart='return false' onselect='return false'>
+        <div id="mask"></div>
         <div class="page" id="loginPage">
             <div class="title">
                 <div class="titleText">反人类卡牌游戏</div>
@@ -177,13 +178,13 @@
                     <div class="button" id="createRoom">创建房间</div>
                     <div class="button">游戏设置</div>
                     <div class="button">我的好友</div>
-                    <div class="button">制作卡牌</div>
-                    <div class="button">建议意见</div>
+                    <div class="button" id="createCard">制作卡牌</div>
+                    <div class="button" id="suggest">建议意见</div>
                     <div class="button">退出登录</div>
                 </div>
             </div>
         </div>
-    
+
         <div id="gamePage" class="page">
 
             <div id="leftArea">
@@ -390,14 +391,65 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="settingsPage" id="gamestart">
-            <div class="title">对局设置</div>
-            <div class="content">
-                <div id="cardpacks">
-                    <input type="checkbox" id="cardpack1" /><label for="cardpack1">基本卡牌包</label>
-                </div>
+    <div class="settingsPage" id="gamestart">
+        <div class="title">对局设置</div>
+        <div class="content">
+            <div id="cardpacks">
+                <input type="checkbox" id="cardpack1" /><label for="cardpack1">基本卡牌包</label>
             </div>
+        </div>
+    </div>
+
+    <div class="settingsPage" id="createcard">
+        <div class="title">制作卡牌<div class="closeButton">X</div></div>
+        <div class="content">
+            <div class="desc">请输入卡牌内容，多张卡牌请用 "|"(竖线) 分割<br>黑卡的下划线用 %b 代替，只能填写1-3个</div>
+            <div class="options">
+                <input type="radio" value="1" id="wc" name="cardtype" checked="checked"/><label for="wc">白卡</label>
+                <input type="radio" value="0" id="bc" name="cardtype" /><label for="bc">黑卡</label>&nbsp;&nbsp;&nbsp;
+                <label for="cardpack">卡牌包:</label>
+                <select id="cardpack">
+                    
+                </select>
+            </div>
+            <textarea id="text" maxlength="200"></textarea>
+            <div id="submit" class="button">提交</div>
+        </div>
+    </div>
+
+    <div class="settingsPage" id="sug">
+        <div class="title">建议意见<div class="closeButton">X</div></div>
+        <div class="content">
+            <div class="desc">请输入您的建议或者意见，或者是您想对作者说的话。</div>
+            <textarea id="text" maxlength="200"></textarea>
+            <div id="submit" class="button">提交</div>
+        </div>
+    </div>
+
+    <div class="settingsPage" id="pend">
+        <div class="title">审核卡牌<div class="closeButton">X</div></div>
+        <div class="content">
+            <div id="tablecontainer">
+                <table id="table" border="1">
+                    <tr>
+                        <td>全选</td>
+                        <td>作者</td>
+                        <td>类型</td>
+                        <td>卡包</td>
+                        <td>内容</td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox" value="5"/></td>
+                        <td>admin</td>
+                        <td>白卡</td>
+                        <td>基本卡牌包EX</td>
+                        <td>你爸</td>
+                    </tr>
+                </table>
+            </div>
+            <div id="submit" class="button">提交</div>
         </div>
     </div>
 </body>
