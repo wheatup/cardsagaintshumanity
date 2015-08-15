@@ -393,12 +393,26 @@
         </div>
     </div>
 
-    <div class="settingsPage" id="gamestart">
-        <div class="title">对局设置</div>
+    <div class="settingsPage" id="createroom">
+        <div class="title">创建房间<div class="closeButton">X</div></div>
         <div class="content">
-            <div id="cardpacks">
-                <input type="checkbox" id="cardpack1" /><label for="cardpack1">基本卡牌包</label>
+            <div class="option"><label>房间标题:</label><input id="roomtitle" type="text" value="默认房间" maxlength="20" /></div>
+            <div class="option"><label>房间密码:</label><input id="roompassword" type="text" value="" maxlength="20" /></div>
+            <div class="option">
+                <label>卡牌包:</label><br>
+                <div id="cardpacks">
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                </div>
             </div>
+            <div id="submit" class="button">创建</div>
         </div>
     </div>
 

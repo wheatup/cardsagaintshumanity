@@ -9,7 +9,6 @@ public class BaseDAO {
 	public static Connection cardsDB;
 	public static Connection sugDB;
 	public static boolean resetMode = false;
-	public static Integer lock = 1;
 	public static void init(){
 		try {
 			Class.forName("org.sqlite.JDBC");

@@ -1,6 +1,8 @@
 package cc.cafebabe.cardagainsthumanity.util;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -188,7 +190,37 @@ public class TaskHandler implements Runnable {
 		}
 		//接收到创建房间消息
 		else if(key.equals("createroom")){
-			int code = Server.gameWorld.getLobby().createRoom();
+			int level = 0;
+			String name = "默认房间";
+			String password = "";
+			int[] packs = {1};
+			
+			try{
+				level = Integer.parseInt((String)map.get("lv"));
+				name = (String) map.get("name");
+				password = (String) map.get("pw");
+				String[] packsRaw = ((String) map.get("cp")).split(",");
+				List<Integer> tempPacks = new ArrayList<Integer>();
+				
+				for(int i = 0; i < packsRaw.length; i++){
+					int id = Integer.parseInt(packsRaw[i]);
+					if(CardsService.cardpacks.get(id).getNeedLevel() <= level){
+						tempPacks.add(id);
+					}
+				}
+				
+				packs = new int[tempPacks.size()];
+				for(int i = 0; i < tempPacks.size(); i++){
+					packs[i] = tempPacks.get(i);
+				}
+				
+				System.out.println(tempPacks.size());
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			
+			int code = Server.gameWorld.getLobby().createRoom(name, password, packs);
 			if(code == -1){
 				player.sendMessage(Json2Map.BuildFlagMessage("toomanyroom"));
 			}else{
@@ -383,8 +415,11 @@ public class TaskHandler implements Runnable {
 				PlayerService.opPlayer(name);
 				player.sendMessage(Json2Map.BuildTextMessage("已将该玩家设置为OP！"));
 				Player p = Server.gameWorld.getPlayer(name);
-				if(p != null)
+				if(p != null){
+					p.setState(2);
+					p.sendMessage(Json2Map.buildMyInfo(p));
 					p.sendMessage(Json2Map.BuildTextMessage("您已被" + player.getName() + "设置为OP！"));
+				}
 			}
 		}else if("deop".equals(command)){
 			if(player.getState() != 2)
@@ -399,8 +434,11 @@ public class TaskHandler implements Runnable {
 				PlayerService.opPlayer(name);
 				player.sendMessage(Json2Map.BuildTextMessage("已取消该玩家OP！"));
 				Player p = Server.gameWorld.getPlayer(name);
-				if(p != null)
+				if(p != null){
+					p.setState(0);
+					p.sendMessage(Json2Map.buildMyInfo(p));
 					p.sendMessage(Json2Map.BuildTextMessage("您已被" + player.getName() + "取消OP！"));
+				}
 			}
 		}else if("ban".equals(command)){
 			if(player.getState() != 2)
@@ -413,8 +451,10 @@ public class TaskHandler implements Runnable {
 					PlayerService.banPlayer(name);
 					player.sendMessage(Json2Map.BuildTextMessage("已ban该玩家！"));
 					Player p = Server.gameWorld.getPlayer(name);
-					if(p != null)
+					if(p != null){
+						p.setState(1);
 						p.sendMessage(Json2Map.BuildFlagMessage("ban"));
+					}
 				}
 			}
 		}else if("unban".equals(command)){
@@ -451,6 +491,56 @@ public class TaskHandler implements Runnable {
 				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
 			else{
 				Server.gameWorld.broadcastMessage(Json2Map.BuildFlagMessage("quit"));
+			}
+		}else if("addpack".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 3 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/addpack 卡包名 需求等级"));
+				}else{
+					String name = texts[1];
+					String levelRaw = texts[2];
+					int level = 0;
+					try{
+						level = Integer.parseInt(levelRaw);
+					}catch(Exception e){
+						player.sendMessage(Json2Map.BuildTextMessage("用法：/addpack 卡包名 需求等级"));
+					}
+					
+					CardsService.addCardPack(name, level);
+					CardsService.loadAllCards();
+					player.sendMessage(Json2Map.BuildTextMessage("添加卡牌成功！"));
+					
+				}
+			}
+		}else if("setexp".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 3 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/setexp 玩家名 经验"));
+				}else{
+					String name = texts[1];
+					String levelRaw = texts[2];
+					int level = 0;
+					try{
+						level = Integer.parseInt(levelRaw);
+					}catch(Exception e){
+						player.sendMessage(Json2Map.BuildTextMessage("用法：/setexp 玩家名 经验"));
+					}
+					
+					Player p = Server.gameWorld.getPlayer(name);
+					if(p != null){
+						p.getGameData().setExp(level);
+						p.saveGameData();
+						p.sendMessage(Json2Map.BuildTextMessage("您的经验被管理员 " + player.getName() + " 设置为:" + level));
+						p.sendMessage(Json2Map.buildMyInfo(p));
+						player.sendMessage(Json2Map.BuildTextMessage("您已将 " + name + " 的经验值设置为:" + level));
+					}else{
+						player.sendMessage(Json2Map.BuildTextMessage("该玩家不在线！"));
+					}
+				}
 			}
 		}
 		

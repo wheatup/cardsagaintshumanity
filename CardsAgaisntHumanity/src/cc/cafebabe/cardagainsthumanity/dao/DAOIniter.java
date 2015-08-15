@@ -10,7 +10,6 @@ import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
 public class DAOIniter
 {
-	public static boolean isWriting = false;
 	public static void init()
 	{
 		BaseDAO.init();
@@ -22,26 +21,36 @@ public class DAOIniter
 	}
 	
 	private static void initData(){
+		/*
 		long startTime = System.currentTimeMillis();
+		
 		Player p = PlayerService.logOrRegPlayer("admin", "1234", "0.0.0.0");
 		if(p != null){
 			p.setState(2);
 			p.savePlayerData();
 		}
-		CardsService.addCardPack("基本卡牌包", 0);
-		CardsService.addCardPack("基本卡牌包EX", 5);
-		CardsService.addBlackCard(1, "测试黑卡%b1。", "基本卡牌包");
-		CardsService.addBlackCard(1, "测试黑卡%b2。", "基本卡牌包");
-		CardsService.addBlackCard(1, "测试黑卡%b3。", "基本卡牌包");
-		CardsService.addBlackCard(1, "测试黑卡%b4。", "基本卡牌包EX");
-		CardsService.addBlackCard(1, "测试黑卡%b5。", "基本卡牌包EX");
-		CardsService.addWhiteCard(1, "测试白卡1", "基本卡牌包");
-		CardsService.addWhiteCard(1, "测试白卡2", "基本卡牌包");
-		CardsService.addWhiteCard(1, "测试白卡3", "基本卡牌包EX");
-		CardsService.addWhiteCard(1, "测试白卡4", "基本卡牌包EX");
-		CardsService.addWhiteCard(1, "测试白卡5", "基本卡牌包");
+		CardsService.addCardPack("基本", 0);
+		CardsService.addCardPack("综合", 5);
+		CardsService.addCardPack("梗", 5);
+		CardsService.addCardPack("游戏", 10);
+		CardsService.addCardPack("Acfun", 20);
+		CardsService.addCardPack("Bilibili", 20);
+		CardsService.addCardPack("A岛匿名版", 30);
+		CardsService.addCardPack("作死", 100);
+		
+		
+		for(int i = 0; i < 200; i++){
+			CardsService.addBlackCard(1, "测试黑卡%b。" + i, (int)(Math.random() * 8) + 1);
+			CardsService.addBlackCard(1, "测试%b黑卡%b。" + i, (int)(Math.random() * 8) + 1);
+			CardsService.addBlackCard(1, "%b测试%b黑卡%b。" + i, (int)(Math.random() * 8) + 1);
+		}
+		
+		for(int i = 0; i < 1000; i++){
+			CardsService.addWhiteCard(1, "测试白卡" + i, (int)(Math.random() * 8) + 1);
+		}
 		CardsService.approveAllCards();
-		CardsService.loadAllCards();
+		
+		
 		Set<BlackCard> blackCards = CardsService.getBlackCardsByPacks(
 				new String[]{"基本卡牌包", "基本卡牌包EX"});
 		Set<WhiteCard> whiteCards = CardsService.getWhiteCardsByPacks(
@@ -54,8 +63,10 @@ public class DAOIniter
 			System.out.println(card);
 		}
 		BaseDAO.commit();
-		System.out.println("spent time: " + (System.currentTimeMillis() - startTime));
 		
+		System.out.println("spent time: " + (System.currentTimeMillis() - startTime));
+		*/
+		CardsService.loadAllCards();
 		new Thread(new Runnable()
 		{
 			public void run()
@@ -69,9 +80,7 @@ public class DAOIniter
 					{
 						e.printStackTrace();
 					}
-					DAOIniter.isWriting = true;
 					BaseDAO.commit();
-					DAOIniter.isWriting = false;
 				}
 			}
 		}).start();;

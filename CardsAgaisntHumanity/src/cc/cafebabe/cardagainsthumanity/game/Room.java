@@ -32,6 +32,16 @@ public class Room extends PlayerContainer{
 		this.orderedPlayer = new ArrayList<Player>();
 		this.password = "";
 	}
+	
+	public Room(int id, String name, String password, int[] cardpacks){
+		spectateArea = new SpectateArea(this);
+		this.id = id;
+		this.name = name;
+		this.password = password;
+		this.cardpacks = cardpacks;
+		this.orderedPlayer = new ArrayList<Player>();
+	}
+	
 	public int getId() {return id;}
 	public void setId(int id) {this.id = id;}
 	public String getPassword(){return password;}
@@ -43,7 +53,8 @@ public class Room extends PlayerContainer{
 	public Player getHost() {return host;}
 	public void setHost(Player host) {
 		this.host = host;
-		host.sendMessage(Json2Map.BuildFlagMessage("host"));
+		if(host != null)
+			host.sendMessage(Json2Map.BuildFlagMessage("host"));
 	}
 	public int[] getCardpacks() {return cardpacks;}
 	public void setCardpacks(int[] cardpacks) {this.cardpacks = cardpacks;}
@@ -113,8 +124,12 @@ public class Room extends PlayerContainer{
 		removePlayer(player);
 		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
 		orderedPlayer.remove(player);
-		if(player == host && orderedPlayer.size() > 0){
-			setHost(orderedPlayer.get(0));
+		spectateArea.removePlayerFromSpectator(player);
+		if(player == host){
+			if(orderedPlayer.size() > 0)
+				setHost(orderedPlayer.get(0));
+			else
+				setHost(null);
 		}
 		
 		if(this.players.size() == 0 && this.spectateArea.players.size() == 0){
@@ -131,6 +146,8 @@ public class Room extends PlayerContainer{
 				spectateArea.removePlayer(player);
 				addPlayer(player);
 				orderedPlayer.add(player);
+				if(host == null)
+					setHost(player);
 				broadcastMessage(Json2Map.buildPlayerSwitchInfo(player.getPid(), place));
 			}
 		}else if(place == 1){
@@ -143,6 +160,12 @@ public class Room extends PlayerContainer{
 				removePlayer(player);
 				orderedPlayer.remove(player);
 				spectateArea.addPlayer(player);
+				if(host == player){
+					if(orderedPlayer.size() > 0)
+						setHost(orderedPlayer.get(0));
+					else
+						setHost(null);
+				}
 			}
 		}
 	}
@@ -169,10 +192,9 @@ public class Room extends PlayerContainer{
 		String cardpacks = "";
 		if(getCardpacks() != null){
 			for(int i : getCardpacks()){
-				cardpacks+=CardsService.cardpacks.get(i) + ",";
+				cardpacks+=CardsService.cardpacks.get(i).getPackid() + ",";
 			}
 			cardpacks = cardpacks.substring(0, cardpacks.length() - 1);
-			map.put("cardpacks", cardpacks);
 		}
 		map.put("cp", cardpacks);
 		return map;

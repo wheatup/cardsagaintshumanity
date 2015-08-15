@@ -32,6 +32,18 @@ public class Lobby extends PlayerContainer{
 		return -1;
 	}
 	
+	public int createRoom(String name, String password, int[] cardpacks){
+		for(int i = 1; i <= MAX_ROOM_COUNT; i++){
+			if(!rooms.containsKey(i)){
+				Room r = new Room(i, name, password, cardpacks);
+				rooms.put(i, r);
+				Server.gameWorld.getLobby().broadcastMessage(Json2Map.buildAddNewRoomInfo(r));
+				return i;
+			}
+		}
+		return -1;
+	}
+	
 	public Room getRoom(int id){
 		return rooms.get(id);
 	}

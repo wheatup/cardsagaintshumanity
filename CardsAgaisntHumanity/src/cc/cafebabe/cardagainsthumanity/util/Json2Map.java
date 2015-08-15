@@ -249,10 +249,10 @@ public class Json2Map
 		if(room.getCardpacks() != null){
 			String cardpacks = "";
 			for(int i : room.getCardpacks()){
-				cardpacks+=CardsService.cardpacks.get(i) + ",";
+				cardpacks+=CardsService.cardpacks.get(i).getPackid() + ",";
 			}
 			cardpacks = cardpacks.substring(0, cardpacks.length() - 1);
-			map.put("cardpacks", cardpacks);
+			map.put("cp", cardpacks);
 		}
 		return map;
 	}

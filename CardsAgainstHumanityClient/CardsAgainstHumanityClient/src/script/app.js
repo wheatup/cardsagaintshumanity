@@ -110,7 +110,7 @@ var Player = (function () {
     Player.prototype.getLevelExp = function (lvl) {
         if (lvl == 0)
             return 0;
-        return 10 + Math.round(Math.pow((lvl - 1) * 1.3, 1.9) * 5);
+        return 5 + Math.round(Math.pow(lvl * 2.4, 1.7));
     };
     return Player;
 })();
@@ -179,7 +179,6 @@ var Util = (function () {
                 for (var j = 0; j < Main.cardpacks.length; j++) {
                     if (Main.cardpacks[j].id == id) {
                         r.cardPacks.push(Main.cardpacks[j]);
-                        alert(Main.cardpacks[j].name);
                     }
                 }
             }
@@ -261,7 +260,7 @@ var Server = (function () {
     * 发送信息至服务器事件
     */
     Server.prototype.send = function (data, isVital, isUser) {
-        if (this.antiFlush && isUser) {
+        if ((this.antiFlush || Main.nextSendTime > new Date().getTime()) && isUser) {
             MyEvent.call("text", { pid: 0, text: "您操作太快了！" });
             return;
         }
@@ -276,6 +275,7 @@ var Server = (function () {
         this.socket.send(data);
         if (isVital)
             Main.freezeMe();
+        Main.nextSendTime = new Date().getTime() + 500;
     };
     return Server;
 })();
@@ -300,8 +300,8 @@ var PackageBuilder = (function () {
         var pack = '{"t":"quit"}';
         return pack;
     };
-    PackageBuilder.buildCreateRoomPackage = function () {
-        var pack = '{"t":"createroom"}';
+    PackageBuilder.buildCreateRoomPackage = function (level, name, password, packs) {
+        var pack = '{"t":"createroom","lv":"' + level + '","name":"' + name + '", "pw":"' + password + '","cp":"' + packs + '"}';
         return pack;
     };
     PackageBuilder.buildEnterRoomPackage = function (id) {
@@ -398,6 +398,7 @@ var Main = (function () {
         MyEvent.bind("ban", function (data, _this) { alert("您已被服务器Ban了!"); location.reload(true); }, this);
         MyEvent.bind("kick", function (data, _this) { alert("您已被请出游戏!"); location.reload(true); }, this);
         MyEvent.bind("quit", function (data, _this) { alert("服务器更新!"); location.reload(true); }, this);
+        MyEvent.bind(Signal.MyInfo, this.onUpdateMyInfo, this);
         this.bindLocalEvent();
     };
     Main.prototype.bindLocalEvent = function () {
@@ -413,8 +414,19 @@ var Main = (function () {
         jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
             MyEvent.call(Signal.SendText);
         });
-        jQuery('#lobbyPage #createRoom').tapOrClick(function (event) {
-            MyEvent.call(Signal.ONCLICKCREATEROOM);
+        jQuery('#settingsArea #createRoom').tapOrClick(function (event) {
+            jQuery("#createroom #roomtitle").val(Main.me.name + "的房间");
+            jQuery("#createroom #roompassword").val("");
+            jQuery("#createroom #cardpacks").empty();
+            for (var i = 0; i < Main.cardpacks.length; i++) {
+                if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                    jQuery("#createroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" checked="checked" id="cp' + Main.cardpacks[i].id + '" /><label for="cp' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                else
+                    jQuery("#createroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cp' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cp' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+            }
+            jQuery(".settingsPage[id=createroom]").show(0);
+            jQuery("#wrapper").addClass("mask");
+            jQuery("#mask").show();
         });
         jQuery("#settingsArea #createCard").tapOrClick(function () {
             jQuery(".settingsPage[id=createcard]").show(0);
@@ -435,6 +447,9 @@ var Main = (function () {
             jQuery("#mask").show();
         });
         jQuery("#createcard #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendCard); });
+        jQuery('#createroom #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.ONCLICKCREATEROOM);
+        });
         jQuery("#sug #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendSug); });
         jQuery("#pend #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendPend); });
         jQuery('#gamePage #inputArea #inputbox').keypress(function (event) {
@@ -499,6 +514,19 @@ var Main = (function () {
             jQuery(".settingsPage[id=pend] #table").append('<tr><td><input type="checkbox" value="' + card.id + '"/></td><td>' + card.pl + '</td><td>' + (card.ty == 0 ? "黑卡" : "白卡") + '</td><td>' + Main.getPackName(card.cp) + '</td><td>' + card.te + '</td></tr>');
         }
     };
+    Main.prototype.onUpdateMyInfo = function (data, _this) {
+        Main.me = Util.convertPlayerData(data.info[0]);
+        var level = Main.me.getLevel();
+        var remainExp = Main.me.getRemainExp();
+        var needExp = Main.me.getNeedExp();
+        jQuery("#statArea #nameTag").html(Main.me.name);
+        jQuery("#statArea #nameTag").attr("title", "pid:" + Main.me.pid);
+        jQuery("#statArea #level").html("Lv." + level);
+        jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
+        jQuery("#statArea #credit #content").html(Main.me.credit);
+        jQuery("#statArea #fish #content").html(Main.me.fish);
+        jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
+    };
     Main.freeze = false;
     return Main;
 })();
@@ -516,7 +544,6 @@ var LoginState = (function () {
         MyEvent.bind(Signal.ServerInfo, this.onCanLogin, this);
         MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
         MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
-        MyEvent.bind(Signal.MyInfo, this.onShowLobbyPage, this);
         MyEvent.bind(Signal.LobbyInfo, this.onShowLobbyInfo, this);
         jQuery(".loginArea #submit").tapOrClick(this.onClickLogin);
     };
@@ -524,7 +551,6 @@ var LoginState = (function () {
         MyEvent.unbind(Signal.ServerInfo, this.onCanLogin);
         MyEvent.unbind(Signal.OnClickLogin, this.onLogin);
         MyEvent.unbind(Signal.LoginErr, this.onLoginErr);
-        MyEvent.unbind(Signal.MyInfo, this.onShowLobbyPage);
         MyEvent.unbind(Signal.LobbyInfo, this.onShowLobbyInfo);
     };
     LoginState.prototype.showLoginPage = function () {
@@ -615,12 +641,9 @@ var LoginState = (function () {
             LoginState.setLoginTip('无法登录，服务器已满！');
         }
     };
-    LoginState.prototype.onShowLobbyPage = function (data, thisObject) {
+    LoginState.prototype.onShowLobbyInfo = function (data, thisObject) {
         jQuery("#loginPage").hide();
         Main.lobbyState.showLobbyPage(data);
-    };
-    LoginState.prototype.onShowLobbyInfo = function (data, thisObject) {
-        Main.lobbyState.getLobbyInfo(data);
         thisObject.unbindEvents();
     };
     return LoginState;
@@ -645,14 +668,14 @@ var LobbyState = (function () {
         jQuery("#chatArea #messages").empty();
         jQuery("#playersArea").empty();
     };
-    LobbyState.prototype.showLobbyPage = function (myinfo) {
+    LobbyState.prototype.showLobbyPage = function (data) {
         this.clearLobbyPage();
         this.bindEvents();
         jQuery("#lobbyPage").show();
         this.clearChatArea();
-        this.getMyInfo(myinfo);
         this.canCreateRoom = true;
         this.canEnterRoom = true;
+        this.getLobbyInfo(data);
     };
     LobbyState.prototype.returnToLobbyPage = function (data) {
         this.clearLobbyPage();
@@ -668,7 +691,7 @@ var LobbyState = (function () {
         MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
         MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
         MyEvent.bind(Signal.SendText, this.onSendText, this);
-        MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom, this);
+        MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoomConfirm, this);
         MyEvent.bind(Signal.RoomInfo, this.onReceiveRoomInfo, this);
         MyEvent.bind(Signal.DESTROYROOM, this.onDestroyRoom, this);
         MyEvent.bind(Signal.ADDROOM, this.onAddRoom, this);
@@ -682,7 +705,7 @@ var LobbyState = (function () {
         MyEvent.unbindAll(Signal.PLAYERLEAVE, this.onPlayerLeave);
         MyEvent.unbindAll(Signal.TEXT, this.onReceiveText);
         MyEvent.unbindAll(Signal.SendText, this.onSendText);
-        MyEvent.unbindAll(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
+        MyEvent.unbindAll(Signal.ONCLICKCREATEROOM, this.onClickCreateRoomConfirm);
         MyEvent.unbindAll(Signal.RoomInfo, this.onReceiveRoomInfo);
         MyEvent.unbindAll(Signal.DESTROYROOM, this.onDestroyRoom);
         MyEvent.unbindAll(Signal.ADDROOM, this.onAddRoom);
@@ -699,16 +722,28 @@ var LobbyState = (function () {
         Server.instance.send(PackageBuilder.buildTextPackage(text), true, true);
         $text.value = "";
     };
-    LobbyState.prototype.getMyInfo = function (data) {
-        this.updateMyInfo(data);
-    };
-    LobbyState.prototype.onClickCreateRoom = function (data, _this) {
+    LobbyState.prototype.onClickCreateRoomConfirm = function (data, _this) {
         if (!_this.canCreateRoom) {
             Util.showMessage("您现在不能创建房间！");
             return;
         }
-        Server.instance.send(PackageBuilder.buildCreateRoomPackage(), true, true);
+        var name = jQuery("#createroom #roomtitle").val();
+        var password = jQuery("#createroom #roompassword").val();
+        var packs = "";
+        var spCodesTemp = "";
+        jQuery('#createroom input:checkbox[name=cp]:checked').each(function (i) {
+            if (0 == i) {
+                spCodesTemp = jQuery(this).val();
+            }
+            else {
+                spCodesTemp += ("," + jQuery(this).val());
+            }
+        });
+        Server.instance.send(PackageBuilder.buildCreateRoomPackage(Main.me.getLevel(), name, password, spCodesTemp), true, true);
         _this.canCreateRoom = false;
+        jQuery(".settingsPage[id=createroom]").hide(0);
+        jQuery("#wrapper").removeClass("mask");
+        jQuery("#mask").hide();
     };
     LobbyState.prototype.getLobbyInfo = function (data) {
         this.players = new Array();
@@ -746,19 +781,6 @@ var LobbyState = (function () {
     LobbyState.prototype.clearChatArea = function () {
         jQuery("#chatArea #messages").empty();
     };
-    LobbyState.prototype.updateMyInfo = function (data) {
-        Main.me = Util.convertPlayerData(data.info[0]);
-        var level = Main.me.getLevel();
-        var remainExp = Main.me.getRemainExp();
-        var needExp = Main.me.getNeedExp();
-        jQuery("#statArea #nameTag").html(Main.me.name);
-        jQuery("#statArea #nameTag").attr("title", "pid:" + Main.me.pid);
-        jQuery("#statArea #level").html("Lv." + level);
-        jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
-        jQuery("#statArea #credit #content").html(Main.me.credit);
-        jQuery("#statArea #fish #content").html(Main.me.fish);
-        jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
-    };
     LobbyState.prototype.onClickRoom = function (data, _this) {
         if (!_this.canEnterRoom) {
             Util.showMessage("您现在不能进入房间！");
@@ -773,6 +795,13 @@ var LobbyState = (function () {
         if (room == null) {
             Util.showMessage("房间不存在！");
             return;
+        }
+        if (room.password != null && room.password != "") {
+            var password = prompt("请输入房间密码", "");
+            if (password != room.password) {
+                Util.showMessage("密码错误");
+                return;
+            }
         }
         if (room.playerCount < 8 || room.spectatorCount < 16) {
             this.canEnterRoom = false;
@@ -822,6 +851,9 @@ var LobbyState = (function () {
     };
     LobbyState.prototype.addOneRoom = function (room) {
         var state = room.state == 0 ? "等待中" : "游戏中";
+        if (room.password != null && room.password != "") {
+            state += ",有密码";
+        }
         var cp = "";
         for (var i = 0; i < room.cardPacks.length; i++) {
             cp = cp + '<div class="cardpack" id= "' + room.cardPacks[i].id + '">' + room.cardPacks[i].name + '</div>';
@@ -914,7 +946,6 @@ var PlayState = (function () {
     function PlayState() {
         this.isPlayer = false;
         this.canReturnToLobby = false;
-        this.canSwitch = false;
         this.players = new Array();
         this.spectators = new Array();
     }
@@ -922,7 +953,6 @@ var PlayState = (function () {
         this.players = new Array();
         this.spectators = new Array();
         this.canReturnToLobby = true;
-        this.canSwitch = true;
         this.bindEvents();
         this.clearGamePage();
         jQuery("#gamePage").show();
@@ -1109,7 +1139,7 @@ var PlayState = (function () {
             jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
         else
             jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
-        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+        jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
     };
     PlayState.prototype.onSendText = function (data, _this) {
         var $text = jQuery("#gamePage #inputArea #inputbox")[0];
@@ -1120,10 +1150,6 @@ var PlayState = (function () {
         $text.value = "";
     };
     PlayState.prototype.onClickSwitchButton = function (data, _this) {
-        if (!_this.canSwitch) {
-            Util.showMessage("您现在不能更换座位！");
-            return;
-        }
         if (_this.isPlayer) {
             if (_this.spectators.length >= 16) {
                 Util.showMessage("无法观战，观众已满！");
@@ -1136,7 +1162,6 @@ var PlayState = (function () {
                 return;
             }
         }
-        _this.canSwitch = false;
         Server.instance.send(PackageBuilder.buildSwitchPlacePackage(_this.isPlayer ? 1 : 0), true, true);
     };
     PlayState.prototype.onPlayerSwitch = function (data, _this) {
@@ -1154,7 +1179,6 @@ var PlayState = (function () {
             Util.showMessage(p.name + "进入对局");
         }
         if (id == Main.me.pid) {
-            _this.canSwitch = true;
             if (place == 0) {
                 jQuery("#settingsArea #spectate").html("观战");
                 _this.isPlayer = true;

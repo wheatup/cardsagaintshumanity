@@ -156,6 +156,13 @@
 #createcard #text{resize:none; width:480px; height:150px; margin:10px 8px;}
 #createcard #submit{width:200px;margin:0px auto; border:solid 2px #333;}
 
+#createroom{width:300px; height:350px;}
+#createroom .option{padding:10px; margin:10px;}
+#createroom .option input{margin-left:10px;}
+#createroom #cardpacks {margin-bottom:30px;}
+#createroom #cardpacks div{display:inline-block;}
+#createroom #submit{width:200px;margin:0px auto; border:solid 2px #333;}
+
 #sug{width:500px; height:310px;}
 #sug #text{resize:none; width:480px; height:150px; margin:10px 8px;}
 #sug #submit{width:200px;margin:0px auto; border:solid 2px #333;}

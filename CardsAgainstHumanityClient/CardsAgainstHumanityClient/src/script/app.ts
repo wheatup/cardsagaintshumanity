@@ -124,7 +124,7 @@ class Player {
     public getLevelExp(lvl: number): number {
         if (lvl == 0)
             return 0;
-        return 10 + Math.round(Math.pow((lvl - 1) * 1.3, 1.9) * 5);
+        return 5 + Math.round(Math.pow(lvl * 2.4, 1.7));
     }
 }
 
@@ -199,7 +199,7 @@ class Util {
                 for (var j: number = 0; j < Main.cardpacks.length; j++) {
                     if (Main.cardpacks[j].id == id) {
                         r.cardPacks.push(Main.cardpacks[j]);
-                        alert(Main.cardpacks[j].name);
+                        //alert(Main.cardpacks[j].name);
                     }
                 }
             }
@@ -293,7 +293,7 @@ class Server {
 	* 发送信息至服务器事件
 	*/
     send(data, isVital, isUser): void {
-		if (this.antiFlush && isUser) {
+        if ((this.antiFlush || Main.nextSendTime > new Date().getTime()) && isUser) {
 			MyEvent.call("text", { pid: 0, text: "您操作太快了！" });
 			return;
 		}
@@ -311,7 +311,9 @@ class Server {
         this.socket.send(data);
 
 		if (isVital)
-			Main.freezeMe();
+            Main.freezeMe();
+
+        Main.nextSendTime = new Date().getTime() + 500;
     }
 }
 
@@ -338,8 +340,8 @@ class PackageBuilder {
 		return pack;
     }
 
-    public static buildCreateRoomPackage(): string {
-        var pack = '{"t":"createroom"}';
+    public static buildCreateRoomPackage(level: number, name:string, password:string, packs:string): string {
+        var pack = '{"t":"createroom","lv":"' + level + '","name":"' + name + '", "pw":"' + password + '","cp":"' + packs + '"}';
         return pack;
     }
 
@@ -415,6 +417,8 @@ class Signal {
 class Main {
     public static cardpacks: Array<CardPack>;
 
+    public static nextSendTime: number;
+
     public static server: Server;
     public static state: State;
     public static me: Player;
@@ -450,6 +454,7 @@ class Main {
         MyEvent.bind("ban", function (data: any, _this: Main) { alert("您已被服务器Ban了!"); location.reload(true); }, this);
         MyEvent.bind("kick", function (data: any, _this: Main) { alert("您已被请出游戏!"); location.reload(true); }, this);
         MyEvent.bind("quit", function (data: any, _this: Main) { alert("服务器更新!"); location.reload(true); }, this);
+        MyEvent.bind(Signal.MyInfo, this.onUpdateMyInfo, this);
         this.bindLocalEvent();
     }
 
@@ -467,9 +472,24 @@ class Main {
         jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
             MyEvent.call(Signal.SendText);
         });
-        jQuery('#lobbyPage #createRoom').tapOrClick(function (event) {
-            MyEvent.call(Signal.ONCLICKCREATEROOM);
+        jQuery('#settingsArea #createRoom').tapOrClick(function (event) {
+            jQuery("#createroom #roomtitle").val(Main.me.name + "的房间");
+            jQuery("#createroom #roompassword").val("");
+            jQuery("#createroom #cardpacks").empty();
+            for (var i = 0; i < Main.cardpacks.length; i++) {
+                if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                    jQuery("#createroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" checked="checked" id="cp' + Main.cardpacks[i].id + '" /><label for="cp' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                else
+                    jQuery("#createroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cp' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cp' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+            }
+
+
+            jQuery(".settingsPage[id=createroom]").show(0);
+            jQuery("#wrapper").addClass("mask");
+            jQuery("#mask").show();
         });
+
+
         jQuery("#settingsArea #createCard").tapOrClick(function () {
             jQuery(".settingsPage[id=createcard]").show(0);
             jQuery("#wrapper").addClass("mask");
@@ -491,6 +511,9 @@ class Main {
         });
 
         jQuery("#createcard #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendCard) });
+        jQuery('#createroom #submit').tapOrClick(function (event) {
+            MyEvent.call(Signal.ONCLICKCREATEROOM);
+        });
         jQuery("#sug #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendSug) });
         jQuery("#pend #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendPend) });
 
@@ -564,6 +587,24 @@ class Main {
             jQuery(".settingsPage[id=pend] #table").append('<tr><td><input type="checkbox" value="' + card.id + '"/></td><td>' + card.pl + '</td><td>' + (card.ty == 0 ? "黑卡" : "白卡") + '</td><td>' + Main.getPackName(card.cp) + '</td><td>' + card.te + '</td></tr>');
         }
     }
+
+    public onUpdateMyInfo(data: any, _this: Main): void {
+        Main.me = Util.convertPlayerData(data.info[0]);
+
+        var level: number = Main.me.getLevel();
+        var remainExp: number = Main.me.getRemainExp();
+        var needExp: number = Main.me.getNeedExp();
+
+        jQuery("#statArea #nameTag").html(Main.me.name);
+        jQuery("#statArea #nameTag").attr("title", "pid:" + Main.me.pid);
+        jQuery("#statArea #level").html("Lv." + level);
+        jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
+        jQuery("#statArea #credit #content").html(Main.me.credit);
+        jQuery("#statArea #fish #content").html(Main.me.fish);
+        jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
+    }
+
+
 }
 
 class LoginState {
@@ -579,7 +620,6 @@ class LoginState {
         MyEvent.bind(Signal.ServerInfo, this.onCanLogin, this);
 		MyEvent.bind(Signal.OnClickLogin, this.onLogin, this);
         MyEvent.bind(Signal.LoginErr, this.onLoginErr, this);
-        MyEvent.bind(Signal.MyInfo, this.onShowLobbyPage, this);
 		MyEvent.bind(Signal.LobbyInfo, this.onShowLobbyInfo, this);
         jQuery(".loginArea #submit").tapOrClick(this.onClickLogin);
     }
@@ -588,7 +628,6 @@ class LoginState {
         MyEvent.unbind(Signal.ServerInfo, this.onCanLogin);
 		MyEvent.unbind(Signal.OnClickLogin, this.onLogin);
         MyEvent.unbind(Signal.LoginErr, this.onLoginErr);
-        MyEvent.unbind(Signal.MyInfo, this.onShowLobbyPage);
 		MyEvent.unbind(Signal.LobbyInfo, this.onShowLobbyInfo);
     }
 
@@ -680,13 +719,9 @@ class LoginState {
         }
     }
 
-    private onShowLobbyPage(data:any, thisObject: LoginState): void {
+    private onShowLobbyInfo(data: any, thisObject: LoginState): void {
         jQuery("#loginPage").hide();
-		Main.lobbyState.showLobbyPage(data);
-    }
-
-	private onShowLobbyInfo(data: any, thisObject: LoginState): void {
-		Main.lobbyState.getLobbyInfo(data);
+        Main.lobbyState.showLobbyPage(data);
 		thisObject.unbindEvents();
     }
 }
@@ -718,14 +753,14 @@ class LobbyState {
         jQuery("#playersArea").empty();
     }
 
-    public showLobbyPage(myinfo: any): void {
+    public showLobbyPage(data: any): void {
         this.clearLobbyPage();
-		this.bindEvents();
+        this.bindEvents();
         jQuery("#lobbyPage").show();
 		this.clearChatArea();
-        this.getMyInfo(myinfo);
         this.canCreateRoom = true;
         this.canEnterRoom = true;
+        this.getLobbyInfo(data);
     }
 
     public returnToLobbyPage(data: any): void {
@@ -743,7 +778,7 @@ class LobbyState {
 		MyEvent.bind(Signal.PLAYERLEAVE, this.onPlayerLeave, this);
 		MyEvent.bind(Signal.TEXT, this.onReceiveText, this);
 		MyEvent.bind(Signal.SendText, this.onSendText, this);
-        MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom, this);
+        MyEvent.bind(Signal.ONCLICKCREATEROOM, this.onClickCreateRoomConfirm, this);
         MyEvent.bind(Signal.RoomInfo, this.onReceiveRoomInfo, this);
         MyEvent.bind(Signal.DESTROYROOM, this.onDestroyRoom, this);
         MyEvent.bind(Signal.ADDROOM, this.onAddRoom, this);
@@ -758,7 +793,7 @@ class LobbyState {
         MyEvent.unbindAll(Signal.PLAYERLEAVE, this.onPlayerLeave);
         MyEvent.unbindAll(Signal.TEXT, this.onReceiveText);
         MyEvent.unbindAll(Signal.SendText, this.onSendText);
-        MyEvent.unbindAll(Signal.ONCLICKCREATEROOM, this.onClickCreateRoom);
+        MyEvent.unbindAll(Signal.ONCLICKCREATEROOM, this.onClickCreateRoomConfirm);
         MyEvent.unbindAll(Signal.RoomInfo, this.onReceiveRoomInfo);
         MyEvent.unbindAll(Signal.DESTROYROOM, this.onDestroyRoom);
         MyEvent.unbindAll(Signal.ADDROOM, this.onAddRoom);
@@ -776,20 +811,33 @@ class LobbyState {
 		$text.value = "";
 	}
 
-    private getMyInfo(data: any): void {
-        this.updateMyInfo(data);
-    }
-
-    private onClickCreateRoom(data: any, _this: LobbyState): void {
+    private onClickCreateRoomConfirm(data: any, _this:LobbyState): void {
         if (!_this.canCreateRoom) {
             Util.showMessage("您现在不能创建房间！");
             return;
         }
-        Server.instance.send(PackageBuilder.buildCreateRoomPackage(), true, true);
+
+
+        var name: string = jQuery("#createroom #roomtitle").val();
+        var password: string = jQuery("#createroom #roompassword").val();
+        var packs: string = "";
+
+        var spCodesTemp: string = "";
+        jQuery('#createroom input:checkbox[name=cp]:checked').each(function (i) {
+            if (0 == i) {
+                spCodesTemp = jQuery(this).val();
+            } else {
+                spCodesTemp += ("," + jQuery(this).val());
+            }
+        });
+        Server.instance.send(PackageBuilder.buildCreateRoomPackage(Main.me.getLevel(), name, password, spCodesTemp), true, true);
         _this.canCreateRoom = false;
+        jQuery(".settingsPage[id=createroom]").hide(0);
+        jQuery("#wrapper").removeClass("mask");
+        jQuery("#mask").hide();
     }
 
-	public getLobbyInfo(data: any): void {
+    public getLobbyInfo(data: any): void {
 		this.players = new Array<Player>();
 		Main.state = State.LOBBY;
 		for (var i = 0; i < data.players.length; i++) {
@@ -829,22 +877,6 @@ class LobbyState {
 		jQuery("#chatArea #messages").empty();
 	}
 
-    public updateMyInfo(data: any): void{
-        Main.me = Util.convertPlayerData(data.info[0]);
-
-        var level: number = Main.me.getLevel();
-        var remainExp: number = Main.me.getRemainExp();
-        var needExp: number = Main.me.getNeedExp();
-
-        jQuery("#statArea #nameTag").html(Main.me.name);
-		jQuery("#statArea #nameTag").attr("title", "pid:" + Main.me.pid);
-        jQuery("#statArea #level").html("Lv." + level);
-        jQuery("#statArea #levelBarExp").html(remainExp + "/" + needExp);
-        jQuery("#statArea #credit #content").html(Main.me.credit);
-        jQuery("#statArea #fish #content").html(Main.me.fish);
-        jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
-    }
-
     public onClickRoom(data: any, _this: LobbyState) {
         if (!_this.canEnterRoom) {
             Util.showMessage("您现在不能进入房间！");
@@ -861,6 +893,14 @@ class LobbyState {
         if (room == null) {
             Util.showMessage("房间不存在！");
             return;
+        }
+
+        if (room.password != null && room.password != "") {
+            var password:string = prompt("请输入房间密码", "");
+            if (password != room.password) {
+                Util.showMessage("密码错误");
+                return;
+            }
         }
 
         if (room.playerCount < 8 || room.spectatorCount < 16) {
@@ -918,6 +958,9 @@ class LobbyState {
 
     public addOneRoom(room: Room): void {
         var state = room.state == 0 ? "等待中" : "游戏中";
+        if (room.password != null && room.password != "") {
+            state += ",有密码";
+        }
         var cp: string = "";
         for (var i: number = 0; i < room.cardPacks.length; i++) {
             cp = cp + '<div class="cardpack" id= "' + room.cardPacks[i].id + '">' + room.cardPacks[i].name + '</div>';
@@ -1022,7 +1065,6 @@ class PlayState{
 	private players: Array<Player>;
     private spectators: Array<Player>;
     private canReturnToLobby: boolean = false;
-    private canSwitch: boolean = false;
 
 	public constructor() {
         this.players = new Array<Player>();
@@ -1033,7 +1075,6 @@ class PlayState{
         this.players = new Array<Player>();
         this.spectators = new Array<Player>();
         this.canReturnToLobby = true;
-        this.canSwitch = true;
         this.bindEvents();
         this.clearGamePage();
         jQuery("#gamePage").show();
@@ -1243,7 +1284,7 @@ class PlayState{
         else
             jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
 
-        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+        jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
     }
 
     public onSendText(data: any, _this: PlayState): void {
@@ -1255,11 +1296,6 @@ class PlayState{
     }
 
     public onClickSwitchButton(data: any, _this: PlayState): void {
-        if (!_this.canSwitch) {
-            Util.showMessage("您现在不能更换座位！");
-            return;
-        }
-
         if (_this.isPlayer) {
             if (_this.spectators.length >= 16) {
                 Util.showMessage("无法观战，观众已满！");
@@ -1271,7 +1307,6 @@ class PlayState{
                 return;
             }
         }
-        _this.canSwitch = false;
         Server.instance.send(PackageBuilder.buildSwitchPlacePackage(_this.isPlayer ? 1 : 0), true, true);
     }
 
@@ -1291,8 +1326,6 @@ class PlayState{
 
 
         if (id == Main.me.pid) {
-            _this.canSwitch = true;
-            
             if (place == 0) {
                 jQuery("#settingsArea #spectate").html("观战");
                 _this.isPlayer = true;

@@ -113,7 +113,6 @@ public class CardsDAO
 			    prep.setInt(3, packid);
 			    prep.setLong(4, pid);
 			    prep.setInt(5, state);
-			    System.out.println(state);
 			    prep.executeUpdate();
 			    prep.close();
 			    //BaseDAO.playersDB.commit();
