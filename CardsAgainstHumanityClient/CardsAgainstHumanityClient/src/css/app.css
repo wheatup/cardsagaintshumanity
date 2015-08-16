@@ -163,6 +163,13 @@
 #createroom #cardpacks div{display:inline-block;}
 #createroom #submit{width:200px;margin:0px auto; border:solid 2px #333;}
 
+#setroom{width:300px; height:350px;}
+#setroom .option{padding:10px; margin:10px;}
+#setroom .option input{margin-left:10px;}
+#setroom #cardpacks {margin-bottom:30px;}
+#setroom #cardpacks div{display:inline-block;}
+#setroom #submit{width:200px;margin:0px auto; border:solid 2px #333;}
+
 #sug{width:500px; height:310px;}
 #sug #text{resize:none; width:480px; height:150px; margin:10px 8px;}
 #sug #submit{width:200px;margin:0px auto; border:solid 2px #333;}

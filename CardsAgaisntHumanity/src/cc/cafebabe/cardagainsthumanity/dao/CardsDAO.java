@@ -80,6 +80,23 @@ public class CardsDAO
 		}
 	}
 	
+	public static void deleteCardPack(String name){
+		synchronized(BaseDAO.cardsDB){
+			try
+			{
+				PreparedStatement prep = BaseDAO.cardsDB.prepareStatement("delete from cardpack where name = ?;");
+				prep.setString(1, name.trim());
+			    prep.executeUpdate();
+			    prep.close();
+			    //BaseDAO.playersDB.commit();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	public static String getCardPackName(int packid){
 		synchronized(BaseDAO.cardsDB){
 			String name = "Unknow";
@@ -135,6 +152,22 @@ public class CardsDAO
 			    prep.executeUpdate();
 			    prep.close();
 			    //BaseDAO.playersDB.commit();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static void deleteCard(long cid){
+		synchronized(BaseDAO.cardsDB){
+			try
+			{
+				PreparedStatement prep = BaseDAO.cardsDB.prepareStatement("delete from card where cid = ?;");
+				prep.setLong(1, cid);
+			    prep.executeUpdate();
+			    prep.close();
 			}
 			catch(SQLException e)
 			{

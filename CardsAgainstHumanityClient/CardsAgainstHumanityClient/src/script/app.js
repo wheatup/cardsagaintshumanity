@@ -186,12 +186,25 @@ var Util = (function () {
         return r;
     };
     Util.safeString = function (text) {
-        text = text.replace(/"/g, "\\\"");
-        text = text.replace(/'/g, "\\'");
-        text = text.replace(/\\/g, "\\\\");
-        text = text.replace(/"/g, "\\\"");
-        text = text.replace(/'/g, "\\'");
-        text = text.replace(/\\/g, "\\\\");
+        while (text.indexOf("\"") != -1) {
+            text = text.replace('\"', "&quot;");
+        }
+        while (text.indexOf("<") != -1) {
+            text = text.replace('<', "&lt;");
+        }
+        while (text.indexOf(">") != -1) {
+            text = text.replace('>', "&gt;");
+        }
+        while (text.indexOf("\\") != -1) {
+            text = text.replace('\\', "\\\\");
+        }
+        return text;
+    };
+    Util.convertChat = function (text) {
+        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" />');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank">$1</a>');
         return text;
     };
     Util.showMessage = function (text) {
@@ -304,6 +317,10 @@ var PackageBuilder = (function () {
         var pack = '{"t":"createroom","lv":"' + level + '","name":"' + name + '", "pw":"' + password + '","cp":"' + packs + '"}';
         return pack;
     };
+    PackageBuilder.buildSetRoomPackage = function (level, name, password, packs) {
+        var pack = '{"t":"setroom","lv":"' + level + '","name":"' + name + '", "pw":"' + password + '","cp":"' + packs + '"}';
+        return pack;
+    };
     PackageBuilder.buildEnterRoomPackage = function (id) {
         var pack = '{"t":"enterroom", "id":"' + id + '"}';
         return pack;
@@ -324,6 +341,10 @@ var PackageBuilder = (function () {
     PackageBuilder.buildCreateSugPackage = function (text) {
         text = Util.safeString(text);
         var pack = '{"t":"sug", "text":"' + text + '"}';
+        return pack;
+    };
+    PackageBuilder.buildSendPendPackage = function (approve, reject) {
+        var pack = '{"t":"pendover", "ap":"' + approve + '", "re":"' + reject + '"}';
         return pack;
     };
     return PackageBuilder;
@@ -371,6 +392,11 @@ var Signal = (function () {
     Signal.OnClickSendPend = "OnClickSendPend";
     Signal.OnSendCardCallback = "cardsended";
     Signal.PEND = "pend";
+    Signal.HOST = "host";
+    Signal.UNHOST = "unhost";
+    Signal.OnClickRoomSetButton = "OnClickRoomSetButton";
+    Signal.OnClickRoomSetButtonOK = "OnClickRoomSetButtonOK";
+    Signal.KickPlayer = "KickPlayer";
     return Signal;
 })();
 var Main = (function () {
@@ -446,6 +472,12 @@ var Main = (function () {
             jQuery("#wrapper").addClass("mask");
             jQuery("#mask").show();
         });
+        jQuery("#setroom #submit").tapOrClick(function () {
+            MyEvent.call(Signal.OnClickRoomSetButtonOK);
+        });
+        jQuery("#gamePage #settings").tapOrClick(function () {
+            MyEvent.call(Signal.OnClickRoomSetButton);
+        });
         jQuery("#createcard #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendCard); });
         jQuery('#createroom #submit').tapOrClick(function (event) {
             MyEvent.call(Signal.ONCLICKCREATEROOM);
@@ -468,12 +500,45 @@ var Main = (function () {
             MyEvent.call(Signal.OnClickSwitchButton);
         });
     };
+    Main.sayByVoiceCard = function (text) {
+        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+        var audio = document.getElementById("cardaudio");
+        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+        audio.play();
+    };
+    Main.sayByVoicePlayer = function (text) {
+        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+        var audio = document.getElementById("playeraudio");
+        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+        audio.play();
+    };
     Main.OnClickCloseSettings = function (data, _this) {
         jQuery(".settingsPage").hide();
         jQuery("#wrapper").removeClass("mask");
         jQuery("#mask").hide();
     };
     Main.OnClickSendPend = function (data, _this) {
+        var approve = '';
+        var reject = '';
+        jQuery('#pend input:checkbox:checked').each(function (i) {
+            if (0 == i) {
+                approve = jQuery(this).val();
+            }
+            else {
+                approve += ("," + jQuery(this).val());
+            }
+        });
+        jQuery('#pend input:checkbox').not("input:checked").each(function (i) {
+            if (0 == i) {
+                reject = jQuery(this).val();
+            }
+            else {
+                reject += ("," + jQuery(this).val());
+            }
+        });
+        Server.instance.send(PackageBuilder.buildSendPendPackage(approve, reject), false, true);
         jQuery(".settingsPage").hide();
         jQuery("#wrapper").removeClass("mask");
         jQuery("#mask").hide();
@@ -527,6 +592,7 @@ var Main = (function () {
         jQuery("#statArea #fish #content").html(Main.me.fish);
         jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     };
+    Main.isHost = false;
     Main.freeze = false;
     return Main;
 })();
@@ -685,6 +751,7 @@ var LobbyState = (function () {
         this.canCreateRoom = true;
         this.canEnterRoom = true;
         this.getLobbyInfo(data);
+        Main.isHost = false;
     };
     LobbyState.prototype.bindEvents = function () {
         MyEvent.bind(Signal.PLAYERENTER, this.onPlayerEnter, this);
@@ -699,6 +766,7 @@ var LobbyState = (function () {
         MyEvent.bind(Signal.OnClickSendCard, this.OnClickSendCard, this);
         MyEvent.bind(Signal.OnClickSendSug, this.OnClickSendSug, this);
         MyEvent.bind(Signal.OnSendCardCallback, this.onCardSended, this);
+        MyEvent.bind("sri", this.onRoomChange, this);
     };
     LobbyState.prototype.unbindEvents = function () {
         MyEvent.unbindAll(Signal.PLAYERENTER, this.onPlayerEnter);
@@ -713,6 +781,31 @@ var LobbyState = (function () {
         MyEvent.unbindAll(Signal.OnClickSendCard, this.OnClickSendCard);
         MyEvent.unbindAll(Signal.OnClickSendSug, this.OnClickSendSug);
         MyEvent.unbindAll(Signal.OnSendCardCallback, this.onCardSended);
+        MyEvent.unbindAll("sri", this.onRoomChange);
+    };
+    LobbyState.prototype.onRoomChange = function (data, _this) {
+        var room = Util.convertRoomData(data);
+        for (var i = 0; i < _this.rooms.length; i++) {
+            if (_this.rooms[i] != null) {
+                if (_this.rooms[i].id == room.id) {
+                    _this.rooms[i] = room;
+                    break;
+                }
+            }
+        }
+        var state = (room.state == 0 ? "等待中" : "游戏中");
+        if (room.password != null && room.password != "") {
+            state += ",有密码";
+        }
+        var cp = "";
+        for (var i = 0; i < room.cardPacks.length; i++) {
+            cp = cp + '<div class="cardpack" id= "' + room.cardPacks[i].id + '">' + room.cardPacks[i].name + '</div>';
+        }
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #desc").html(room.roomname);
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #players").html('玩家:' + room.playerCount + '/8');
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #spectors").html('观众:' + room.spectatorCount + '/16');
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #stat").html(state);
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #packsArea").html(cp);
     };
     LobbyState.prototype.onSendText = function () {
         var $text = jQuery("#lobbyPage #inputArea #inputbox")[0];
@@ -772,6 +865,7 @@ var LobbyState = (function () {
                 speakerName = p.name;
         }
         var text = data.text;
+        text = Util.convertChat(text);
         if (pid == 0)
             jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
         else
@@ -964,6 +1058,7 @@ var PlayState = (function () {
     PlayState.prototype.initRoomInfo = function (data) {
         jQuery("#gamePage #roomnum").html(data.id);
         jQuery("#gamePage #roomname").html(data.name);
+        Main.currentRoom = Util.convertRoomData(data);
         for (var i = 0; i < data.players.length; i++) {
             var p = Util.convertPlayerData(data.players[i]);
             this.addOnePlayer(p, false);
@@ -990,6 +1085,12 @@ var PlayState = (function () {
         MyEvent.bind(Signal.LobbyInfo, this.onReturnToLobby, this);
         MyEvent.bind(Signal.OnClickSwitchButton, this.onClickSwitchButton, this);
         MyEvent.bind(Signal.OnPlayerSwitch, this.onPlayerSwitch, this);
+        MyEvent.bind(Signal.OnClickRoomSetButton, this.onClickRoomSetButton, this);
+        MyEvent.bind(Signal.OnClickRoomSetButtonOK, this.onClickRoomSetButtonOK, this);
+        MyEvent.bind(Signal.HOST, this.setMeAsHost, this);
+        MyEvent.bind(Signal.UNHOST, this.setMeAsNotHost, this);
+        MyEvent.bind("sri", this.onRoomChange, this);
+        MyEvent.bind(Signal.KickPlayer, this.onKickPlayer, this);
     };
     PlayState.prototype.unbindEvents = function () {
         MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
@@ -1000,6 +1101,114 @@ var PlayState = (function () {
         MyEvent.unbind(Signal.LobbyInfo, this.onReturnToLobby);
         MyEvent.unbind(Signal.OnClickSwitchButton, this.onClickSwitchButton);
         MyEvent.unbind(Signal.OnPlayerSwitch, this.onPlayerSwitch);
+        MyEvent.unbind(Signal.OnClickRoomSetButton, this.onClickRoomSetButton);
+        MyEvent.unbind(Signal.OnClickRoomSetButtonOK, this.onClickRoomSetButtonOK);
+        MyEvent.unbind(Signal.HOST, this.setMeAsHost);
+        MyEvent.unbind(Signal.UNHOST, this.setMeAsNotHost);
+        MyEvent.unbind("sri", this.onRoomChange);
+        MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
+    };
+    PlayState.prototype.onKickPlayer = function (data, _this) {
+        alert(data);
+    };
+    PlayState.prototype.onRoomChange = function (data, _this) {
+        jQuery("#gamePage #roomnum").html(data.id);
+        jQuery("#gamePage #roomname").html(data.name);
+        Main.currentRoom = Util.convertRoomData(data);
+    };
+    PlayState.prototype.onClickRoomSetButton = function (data, _this) {
+        jQuery(".settingsPage[id=setroom]").show(0);
+        jQuery("#wrapper").addClass("mask");
+        jQuery("#mask").show();
+        if (Main.isHost) {
+            if (Main.currentRoom.state == 0) {
+                jQuery("#setroom #roomtitle").val(Main.currentRoom.roomname);
+                jQuery("#setroom #roomtitle").removeAttr("disabled", "disabled");
+                jQuery("#setroom #roompassword").val(Main.currentRoom.password);
+                jQuery("#setroom #roompassword").removeAttr("disabled", "disabled");
+                jQuery("#setroom #cardpacks").empty();
+                for (var i = 0; i < Main.cardpacks.length; i++) {
+                    var checked = false;
+                    for (var j = 0; j < Main.currentRoom.cardPacks.length; j++) {
+                        if (Main.cardpacks[i].id == Main.currentRoom.cardPacks[j].id) {
+                            checked = true;
+                            break;
+                        }
+                    }
+                    if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" ' + (checked ? 'checked="checked"' : '') + ' id="cps' + Main.cardpacks[i].id + '" /><label for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                    else
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cps' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                }
+            }
+            else {
+                jQuery("#setroom #roomtitle").val(Main.currentRoom.roomname);
+                jQuery("#setroom #roomtitle").removeAttr("disabled", "disabled");
+                jQuery("#setroom #roompassword").val(Main.currentRoom.password);
+                jQuery("#setroom #roompassword").removeAttr("disabled", "disabled");
+                jQuery("#setroom #cardpacks").empty();
+                for (var i = 0; i < Main.cardpacks.length; i++) {
+                    var checked = false;
+                    for (var j = 0; j < Main.currentRoom.cardPacks.length; j++) {
+                        if (Main.cardpacks[i].id == Main.currentRoom.cardPacks[j].id) {
+                            checked = true;
+                            break;
+                        }
+                    }
+                    if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" ' + (checked ? 'checked="checked"' : '') + ' id="cps' + Main.cardpacks[i].id + '" disabled="disabled" /><label for="cp' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                    else
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cps' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                }
+            }
+        }
+        else {
+            jQuery("#setroom #roomtitle").val(Main.currentRoom.roomname);
+            jQuery("#setroom #roomtitle").attr("disabled", "disabled");
+            jQuery("#setroom #roompassword").val(Main.currentRoom.password);
+            jQuery("#setroom #roompassword").attr("disabled", "disabled");
+            jQuery("#setroom #cardpacks").empty();
+            for (var i = 0; i < Main.cardpacks.length; i++) {
+                var checked = false;
+                for (var j = 0; j < Main.currentRoom.cardPacks.length; j++) {
+                    if (Main.cardpacks[i].id == Main.currentRoom.cardPacks[j].id) {
+                        checked = true;
+                        break;
+                    }
+                }
+                if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                    jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" ' + (checked ? 'checked="checked"' : '') + ' id="cps' + Main.cardpacks[i].id + '" disabled="disabled" /><label for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                else
+                    jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cps' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+            }
+        }
+    };
+    PlayState.prototype.onClickRoomSetButtonOK = function (data, _this) {
+        jQuery(".settingsPage").hide();
+        jQuery("#wrapper").removeClass("mask");
+        jQuery("#mask").hide();
+        var time = new Date().getTime();
+        if (time < parseInt(localStorage["lastSendTime"])) {
+            Util.showMessage("技能冷却中，剩余时间:" + Math.round((parseInt(localStorage["lastSendTime"]) - time) / 1000) + "秒");
+            Main.OnClickCloseSettings(null, null);
+            return;
+        }
+        if (!Main.isHost)
+            return;
+        var name = jQuery("#setroom #roomtitle").val();
+        var password = jQuery("#setroom #roompassword").val();
+        var spCodesTemp = "";
+        var level = Main.me.getLevel();
+        jQuery('#setroom input:checkbox[name=cp]:checked').each(function (i) {
+            if (0 == i) {
+                spCodesTemp = jQuery(this).val();
+            }
+            else {
+                spCodesTemp += ("," + jQuery(this).val());
+            }
+        });
+        Server.instance.send(PackageBuilder.buildSetRoomPackage(level, name, password, spCodesTemp), true, true);
+        localStorage["lastSendTime"] = new Date().getTime() + 60000;
     };
     PlayState.prototype.clearGamePage = function () {
         jQuery("#roominfo #roomnum").empty();
@@ -1020,6 +1229,12 @@ var PlayState = (function () {
     PlayState.prototype.showBlackCardArea = function () {
         jQuery("#blackCardArea #blackCard").show();
         jQuery("#blackCardArea #hostSettings").hide();
+    };
+    PlayState.prototype.setMeAsHost = function () {
+        Main.isHost = true;
+    };
+    PlayState.prototype.setMeAsNotHost = function () {
+        Main.isHost = false;
     };
     PlayState.prototype.updateMyInfoDisplay = function () {
         var level = Main.me.getLevel();
@@ -1114,6 +1329,7 @@ var PlayState = (function () {
         for (var i = 0; i < this.players.length; i++) {
             var p = this.players[i];
             ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar">裁判</div></div>');
+            jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
         for (var i = 0; i < this.spectators.length; i++) {
             var p = this.spectators[i];
@@ -1135,11 +1351,14 @@ var PlayState = (function () {
                 speakerName = p.name;
         }
         var text = data.text;
+        text = Util.convertChat(text);
         if (pid == 0)
             jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
         else
             jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
         jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
+        if (pid != 0)
+            Main.sayByVoicePlayer(text);
     };
     PlayState.prototype.onSendText = function (data, _this) {
         var $text = jQuery("#gamePage #inputArea #inputbox")[0];

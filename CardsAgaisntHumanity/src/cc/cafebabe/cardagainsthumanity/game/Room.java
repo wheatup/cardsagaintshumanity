@@ -52,9 +52,14 @@ public class Room extends PlayerContainer{
 	public void setName(String name) {this.name = name;}
 	public Player getHost() {return host;}
 	public void setHost(Player host) {
+		if(this.host != null){
+			this.host.sendMessage(Json2Map.BuildFlagMessage("unhost"));
+		}
+		
 		this.host = host;
-		if(host != null)
+		if(host != null){
 			host.sendMessage(Json2Map.BuildFlagMessage("host"));
+		}
 	}
 	public int[] getCardpacks() {return cardpacks;}
 	public void setCardpacks(int[] cardpacks) {this.cardpacks = cardpacks;}
@@ -104,12 +109,14 @@ public class Room extends PlayerContainer{
 			if(players.size() == 1){
 				setHost(player);
 			}
+			Server.gameWorld.getLobby().broadcastMessage(buildRoomShortInfo());
 			return 0;
 		} else if(spectateArea.players.size() < MAX_SPECTATOR){
 			spectateArea.addPlayer(player);
 			player.sendMessage(Json2Map.buildRoomInfo(this));
 			player.setRoomNumber(id);
 			broadcastMessage(Json2Map.buildPlayerEnterInfo(player, true));
+			Server.gameWorld.getLobby().broadcastMessage(buildRoomShortInfo());
 			return 1;
 		} else {
 			return 2;
@@ -134,6 +141,8 @@ public class Room extends PlayerContainer{
 		
 		if(this.players.size() == 0 && this.spectateArea.players.size() == 0){
 			Server.gameWorld.getLobby().destroyRoom(id);
+		}else{
+			Server.gameWorld.getLobby().broadcastMessage(buildRoomShortInfo());
 		}
 	}
 	
@@ -168,6 +177,8 @@ public class Room extends PlayerContainer{
 				}
 			}
 		}
+		
+		Server.gameWorld.getLobby().broadcastMessage(buildRoomShortInfo());
 	}
 	
 	public HashMapArray buildPlayersInfo(){
@@ -183,6 +194,7 @@ public class Room extends PlayerContainer{
 	
 	public Map<String, Object> buildRoomShortInfo(){
 		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("t", "sri");
 		map.put("id", id);
 		map.put("name", name);
 		map.put("pw", password);

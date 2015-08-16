@@ -1,12 +1,6 @@
 package cc.cafebabe.cardagainsthumanity.dao;
 
-import java.util.Set;
-
-import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
-import cc.cafebabe.cardagainsthumanity.entities.Player;
-import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
-import cc.cafebabe.cardagainsthumanity.service.PlayerService;
 
 public class DAOIniter
 {

@@ -10,7 +10,9 @@ import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Card;
 import cc.cafebabe.cardagainsthumanity.entities.CardPack;
 import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
+import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.util.HashMapArray;
+import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 import cc.cafebabe.cardagainsthumanity.util.Misc;
 
 public class CardsService
@@ -19,6 +21,7 @@ public class CardsService
 	
 	public static void loadAllCards(){
 		cardpacks = CardsDAO.getCardsPacks();
+		Server.gameWorld.broadcastMessage(Json2Map.buildCardPacksInfo());
 	}
 	
 	public static Set<WhiteCard> getWhiteCardsByPacks(int[] packids){
@@ -113,16 +116,27 @@ public class CardsService
 	}
 	
 	public static void addCardPack(String packname, int level){
-		int packid = CardsDAO.getCardPackId(packname);
-		if(packid != -1){
-			return;
-		}
-		
 		CardsDAO.createCardPack(packname, level);
+	}
+	
+	public static void delCardPack(String packname){
+		CardsDAO.deleteCardPack(packname);
 	}
 	
 	public static void approveAllCards(){
 		CardsDAO.approveAllCards();
+	}
+	
+	public static void approveCards(int[] cids){
+		for(int i: cids){
+			CardsDAO.setCardState(i, Card.STATE_APPROVED);
+		}
+	}
+	
+	public static void rejectCards(int[] cids){
+		for(int i: cids){
+			CardsDAO.deleteCard(i);
+		}
 	}
 	
 	public static HashMapArray buildCardPacksInfo(){

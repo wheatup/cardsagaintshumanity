@@ -245,7 +245,9 @@ public class Json2Map
 		map.put("players", room.buildPlayersInfo());
 		map.put("spectators", room.buildSpectatorsInfo());
 		map.put("id", room.getId());
+		map.put("pw", room.getPassword());
 		map.put("name", room.getName());
+		map.put("state", room.getRound() == null ? 0 : room.getRound().getState());
 		if(room.getCardpacks() != null){
 			String cardpacks = "";
 			for(int i : room.getCardpacks()){

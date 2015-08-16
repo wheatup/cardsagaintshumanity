@@ -179,7 +179,7 @@ class Util {
 		p.exp = data.exp;
 		p.state = data.state;
 		p.credit = data.credit;
-		p.fish = data.fish;
+        p.fish = data.fish;
 		return p;
     }
 
@@ -207,14 +207,28 @@ class Util {
         return r;
     }
 
-	public static safeString(text: string): string {
-		text = text.replace(/"/g, "\\\"");
-		text = text.replace(/'/g, "\\'");
-		text = text.replace(/\\/g, "\\\\");
-		text = text.replace(/"/g, "\\\"");
-		text = text.replace(/'/g, "\\'");
-		text = text.replace(/\\/g, "\\\\");
+    public static safeString(text: string): string {
+        while (text.indexOf("\"") != -1) {
+            text = text.replace('\"', "&quot;");
+        }
+        while (text.indexOf("<") != -1) {
+            text = text.replace('<', "&lt;");
+        }
+        while (text.indexOf(">") != -1) {
+            text = text.replace('>', "&gt;");
+        }
+        while (text.indexOf("\\") != -1) {
+            text = text.replace('\\', "\\\\");
+        }
 		return text;
+    }
+
+    public static convertChat(text: string): string {
+        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" />');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank">$1</a>');
+        return text;
     }
 
     public static showMessage(text: string): void {
@@ -345,6 +359,11 @@ class PackageBuilder {
         return pack;
     }
 
+    public static buildSetRoomPackage(level: number, name: string, password: string, packs: string): string {
+        var pack = '{"t":"setroom","lv":"' + level + '","name":"' + name + '", "pw":"' + password + '","cp":"' + packs + '"}';
+        return pack;
+    }
+
     public static buildEnterRoomPackage(id: number): string {
         var pack = '{"t":"enterroom", "id":"' + id + '"}';
         return pack;
@@ -369,6 +388,11 @@ class PackageBuilder {
     public static buildCreateSugPackage(text: string): string {
         text = Util.safeString(text);
         var pack = '{"t":"sug", "text":"' + text + '"}';
+        return pack;
+    }
+
+    public static buildSendPendPackage(approve: string, reject: string) {
+        var pack = '{"t":"pendover", "ap":"' + approve + '", "re":"' + reject + '"}';
         return pack;
     }
 }
@@ -412,6 +436,11 @@ class Signal {
     public static OnClickSendPend: string = "OnClickSendPend";
     public static OnSendCardCallback: string = "cardsended";
     public static PEND: string = "pend";
+    public static HOST: string = "host";
+    public static UNHOST: string = "unhost";
+    public static OnClickRoomSetButton: string = "OnClickRoomSetButton";
+    public static OnClickRoomSetButtonOK: string = "OnClickRoomSetButtonOK";
+    public static KickPlayer: string = "KickPlayer";
 }
 
 class Main {
@@ -422,6 +451,8 @@ class Main {
     public static server: Server;
     public static state: State;
     public static me: Player;
+    public static isHost: boolean = false;
+    public static currentRoom: Room;
 
     public static loginState: LoginState;
     public static lobbyState: LobbyState;
@@ -489,7 +520,6 @@ class Main {
             jQuery("#mask").show();
         });
 
-
         jQuery("#settingsArea #createCard").tapOrClick(function () {
             jQuery(".settingsPage[id=createcard]").show(0);
             jQuery("#wrapper").addClass("mask");
@@ -508,6 +538,14 @@ class Main {
             jQuery(".settingsPage[id=sug]").show(0);
             jQuery("#wrapper").addClass("mask");
             jQuery("#mask").show();
+        });
+
+        jQuery("#setroom #submit").tapOrClick(function () {
+            MyEvent.call(Signal.OnClickRoomSetButtonOK);
+        });
+
+        jQuery("#gamePage #settings").tapOrClick(function () {
+            MyEvent.call(Signal.OnClickRoomSetButton);
         });
 
         jQuery("#createcard #submit").tapOrClick(function () { MyEvent.call(Signal.OnClickSendCard) });
@@ -534,6 +572,24 @@ class Main {
         });
     }
 
+    public static sayByVoiceCard(text: string): void {
+        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+
+        var audio: any = document.getElementById("cardaudio");
+        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+        audio.play();
+    }
+
+    public static sayByVoicePlayer(text: string): void {
+        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+
+        var audio: any = document.getElementById("playeraudio");
+        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+        audio.play();
+    }
+
     public static OnClickCloseSettings(data: any, _this: Main): void {
         jQuery(".settingsPage").hide();
         jQuery("#wrapper").removeClass("mask");
@@ -541,6 +597,25 @@ class Main {
     }
 
     public static OnClickSendPend(data: any, _this: Main): void {
+        var approve: string = '';
+        var reject: string = '';
+        jQuery('#pend input:checkbox:checked').each(function (i) {
+            if (0 == i) {
+                approve = jQuery(this).val();
+            } else {
+                approve += ("," + jQuery(this).val());
+            }
+        });
+
+        jQuery('#pend input:checkbox').not("input:checked").each(function (i) {
+            if (0 == i) {
+                reject = jQuery(this).val();
+            } else {
+                reject += ("," + jQuery(this).val());
+            }
+        });
+
+        Server.instance.send(PackageBuilder.buildSendPendPackage(approve, reject), false, true);
         jQuery(".settingsPage").hide();
         jQuery("#wrapper").removeClass("mask");
         jQuery("#mask").hide();
@@ -771,6 +846,7 @@ class LobbyState {
         this.canCreateRoom = true;
         this.canEnterRoom = true;
         this.getLobbyInfo(data);
+        Main.isHost = false;
     }
 
 	private bindEvents(): void {
@@ -786,6 +862,7 @@ class LobbyState {
         MyEvent.bind(Signal.OnClickSendCard, this.OnClickSendCard, this);
         MyEvent.bind(Signal.OnClickSendSug, this.OnClickSendSug, this);
         MyEvent.bind(Signal.OnSendCardCallback, this.onCardSended, this);
+        MyEvent.bind("sri", this.onRoomChange, this);
 	}
 
 	private unbindEvents(): void {
@@ -801,7 +878,39 @@ class LobbyState {
         MyEvent.unbindAll(Signal.OnClickSendCard, this.OnClickSendCard);
         MyEvent.unbindAll(Signal.OnClickSendSug, this.OnClickSendSug);
         MyEvent.unbindAll(Signal.OnSendCardCallback, this.onCardSended);
-	}
+        MyEvent.unbindAll("sri", this.onRoomChange);
+    }
+
+    public onRoomChange(data: any, _this: LobbyState) {
+
+
+
+        var room: Room = Util.convertRoomData(data);
+        for (var i: number = 0; i < _this.rooms.length; i++) {
+            if (_this.rooms[i] != null) {
+                if (_this.rooms[i].id == room.id) {
+                    _this.rooms[i] = room;
+                    break;
+                }
+            }
+        }
+
+        var state = (room.state == 0 ? "等待中" : "游戏中");
+        if (room.password != null && room.password != "") {
+            state += ",有密码";
+        }
+
+        var cp: string = "";
+        for (var i: number = 0; i < room.cardPacks.length; i++) {
+            cp = cp + '<div class="cardpack" id= "' + room.cardPacks[i].id + '">' + room.cardPacks[i].name + '</div>';
+        }
+
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #desc").html(room.roomname);
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #players").html('玩家:' + room.playerCount + '/8');
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #spectors").html('观众:' + room.spectatorCount + '/16');
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #stat").html(state);
+        jQuery("#lobbyPage #roomArea .room[id=" + room.id + "] #packsArea").html(cp);
+    }
 
 	public onSendText(): void {
 		var $text: any = jQuery("#lobbyPage #inputArea #inputbox")[0];
@@ -864,13 +973,16 @@ class LobbyState {
 				speakerName = p.name;
 		}
 
-		var text: string = data.text;
+        var text: string = data.text;
+
+        text = Util.convertChat(text);
+
 		if (pid == 0)
 			jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
 		else
 			jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
 
-		jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
 	}
 
 	public clearChatArea(): void {
@@ -1065,6 +1177,7 @@ class PlayState{
 	private players: Array<Player>;
     private spectators: Array<Player>;
     private canReturnToLobby: boolean = false;
+    private gameState: number 
 
 	public constructor() {
         this.players = new Array<Player>();
@@ -1088,6 +1201,9 @@ class PlayState{
     private initRoomInfo(data: any): void {
         jQuery("#gamePage #roomnum").html(data.id);
         jQuery("#gamePage #roomname").html(data.name);
+
+        Main.currentRoom = Util.convertRoomData(data);
+
         for (var i: number = 0; i < data.players.length; i++) {
             var p: Player = Util.convertPlayerData(data.players[i]);
             this.addOnePlayer(p, false);
@@ -1117,6 +1233,12 @@ class PlayState{
         MyEvent.bind(Signal.LobbyInfo, this.onReturnToLobby, this);
         MyEvent.bind(Signal.OnClickSwitchButton, this.onClickSwitchButton, this);
         MyEvent.bind(Signal.OnPlayerSwitch, this.onPlayerSwitch, this);
+        MyEvent.bind(Signal.OnClickRoomSetButton, this.onClickRoomSetButton, this);
+        MyEvent.bind(Signal.OnClickRoomSetButtonOK, this.onClickRoomSetButtonOK, this);
+        MyEvent.bind(Signal.HOST, this.setMeAsHost, this);
+        MyEvent.bind(Signal.UNHOST, this.setMeAsNotHost, this);
+        MyEvent.bind("sri", this.onRoomChange, this);
+        MyEvent.bind(Signal.KickPlayer, this.onKickPlayer, this);
     }
 
     private unbindEvents(): void {
@@ -1128,6 +1250,125 @@ class PlayState{
         MyEvent.unbind(Signal.LobbyInfo, this.onReturnToLobby);
         MyEvent.unbind(Signal.OnClickSwitchButton, this.onClickSwitchButton);
         MyEvent.unbind(Signal.OnPlayerSwitch, this.onPlayerSwitch);
+        MyEvent.unbind(Signal.OnClickRoomSetButton, this.onClickRoomSetButton);
+        MyEvent.unbind(Signal.OnClickRoomSetButtonOK, this.onClickRoomSetButtonOK);
+        MyEvent.unbind(Signal.HOST, this.setMeAsHost);
+        MyEvent.unbind(Signal.UNHOST, this.setMeAsNotHost);
+        MyEvent.unbind("sri", this.onRoomChange);
+        MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
+    }
+
+    private onKickPlayer(data: any, _this: PlayState): void {
+        alert(data);
+    }
+
+    public onRoomChange(data: any, _this: PlayState): void {
+        jQuery("#gamePage #roomnum").html(data.id);
+        jQuery("#gamePage #roomname").html(data.name);
+        Main.currentRoom = Util.convertRoomData(data);
+    }
+
+    public onClickRoomSetButton(data: any, _this: PlayState): void{
+        jQuery(".settingsPage[id=setroom]").show(0);
+        jQuery("#wrapper").addClass("mask");
+        jQuery("#mask").show();
+
+        if (Main.isHost) {
+            if (Main.currentRoom.state == 0) {
+                jQuery("#setroom #roomtitle").val(Main.currentRoom.roomname);
+                jQuery("#setroom #roomtitle").removeAttr("disabled", "disabled");
+                jQuery("#setroom #roompassword").val(Main.currentRoom.password);
+                jQuery("#setroom #roompassword").removeAttr("disabled", "disabled");
+                jQuery("#setroom #cardpacks").empty();
+                for (var i = 0; i < Main.cardpacks.length; i++) {
+                    var checked: boolean = false;
+                    for (var j: number = 0; j < Main.currentRoom.cardPacks.length; j++) {
+                        if (Main.cardpacks[i].id == Main.currentRoom.cardPacks[j].id) {
+                            checked = true;
+                            break;
+                        }
+                    }
+
+                    if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" ' + (checked ? 'checked="checked"' : '') + ' id="cps' + Main.cardpacks[i].id + '" /><label for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                    else
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cps' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                }
+            } else {
+                jQuery("#setroom #roomtitle").val(Main.currentRoom.roomname);
+                jQuery("#setroom #roomtitle").removeAttr("disabled", "disabled");
+                jQuery("#setroom #roompassword").val(Main.currentRoom.password);
+                jQuery("#setroom #roompassword").removeAttr("disabled", "disabled");
+                jQuery("#setroom #cardpacks").empty();
+                for (var i = 0; i < Main.cardpacks.length; i++) {
+                    var checked: boolean = false;
+                    for (var j: number = 0; j < Main.currentRoom.cardPacks.length; j++) {
+                        if (Main.cardpacks[i].id == Main.currentRoom.cardPacks[j].id) {
+                            checked = true;
+                            break;
+                        }
+                    }
+
+                    if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" ' + (checked ? 'checked="checked"' : '') + ' id="cps' + Main.cardpacks[i].id + '" disabled="disabled" /><label for="cp' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                    else
+                        jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cps' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                }
+            }
+        } else {
+            jQuery("#setroom #roomtitle").val(Main.currentRoom.roomname);
+            jQuery("#setroom #roomtitle").attr("disabled", "disabled");
+            jQuery("#setroom #roompassword").val(Main.currentRoom.password);
+            jQuery("#setroom #roompassword").attr("disabled", "disabled");
+            jQuery("#setroom #cardpacks").empty();
+            for (var i = 0; i < Main.cardpacks.length; i++) {
+                var checked: boolean = false;
+                for (var j: number = 0; j < Main.currentRoom.cardPacks.length; j++) {
+                    if (Main.cardpacks[i].id == Main.currentRoom.cardPacks[j].id) {
+                        checked = true;
+                        break;
+                    }
+                }
+
+                if (Main.me.getLevel() >= Main.cardpacks[i].level)
+                    jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" value="' + Main.cardpacks[i].id + '" ' + (checked ? 'checked="checked"' : '') + ' id="cps' + Main.cardpacks[i].id + '" disabled="disabled" /><label for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+                else
+                    jQuery("#setroom #cardpacks").append('<div><input type="checkbox" name="cp" title="将在' + Main.cardpacks[i].level + '级开放" value="' + Main.cardpacks[i].id + '" disabled="disabled" id="cps' + Main.cardpacks[i].id + '" /><label title="将在' + Main.cardpacks[i].level + '级开放" for="cps' + Main.cardpacks[i].id + '">' + Main.cardpacks[i].name + '</label></div>');
+            }
+        }
+    }
+
+    public onClickRoomSetButtonOK(data: any, _this: PlayState): void {
+       
+
+        jQuery(".settingsPage").hide();
+        jQuery("#wrapper").removeClass("mask");
+        jQuery("#mask").hide();
+
+        var time = new Date().getTime();
+        if (time < parseInt(localStorage["lastSendTime"])) {
+            Util.showMessage("技能冷却中，剩余时间:" + Math.round((parseInt(localStorage["lastSendTime"]) - time) / 1000) + "秒");
+            Main.OnClickCloseSettings(null, null);
+            return;
+        }
+
+        if (!Main.isHost)
+            return;
+
+        var name: string = jQuery("#setroom #roomtitle").val();
+        var password: string = jQuery("#setroom #roompassword").val();
+        var spCodesTemp: string = "";
+        var level: number = Main.me.getLevel();
+        jQuery('#setroom input:checkbox[name=cp]:checked').each(function (i) {
+            if (0 == i) {
+                spCodesTemp = jQuery(this).val();
+            } else {
+                spCodesTemp += ("," + jQuery(this).val());
+            }
+        });
+
+        Server.instance.send(PackageBuilder.buildSetRoomPackage(level, name, password, spCodesTemp), true, true);
+        localStorage["lastSendTime"] = new Date().getTime() + 60000;
     }
 
     public clearGamePage(): void {
@@ -1153,6 +1394,14 @@ class PlayState{
         jQuery("#blackCardArea #hostSettings").hide();
     }
 
+    public setMeAsHost(): void {
+        Main.isHost = true;
+    }
+
+    public setMeAsNotHost(): void {
+        Main.isHost = false;
+    }
+
     public updateMyInfoDisplay(): void {
 
         var level: number = Main.me.getLevel();
@@ -1166,6 +1415,8 @@ class PlayState{
         jQuery("#gamePage #statArea #credit #content").html(Main.me.credit);
         jQuery("#gamePage #statArea #fish #content").html(Main.me.fish);
         jQuery("#gamePage #statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
+
+
     }
 
     public updateMyInfo(data: any): void {
@@ -1257,6 +1508,7 @@ class PlayState{
         for (var i = 0; i < this.players.length; i++) {
             var p: Player = this.players[i];
             ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar">裁判</div></div>');
+            jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
 
         for (var i = 0; i < this.spectators.length; i++) {
@@ -1279,12 +1531,15 @@ class PlayState{
         }
 
         var text: string = data.text;
+        text = Util.convertChat(text);
         if (pid == 0)
             jQuery("#chatArea #messages").append('<div id="entry"><label id="server">[' + speakerName + ']' + text + '</label></div>');
         else
             jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
 
         jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
+        if (pid != 0)
+            Main.sayByVoicePlayer(text);
     }
 
     public onSendText(data: any, _this: PlayState): void {

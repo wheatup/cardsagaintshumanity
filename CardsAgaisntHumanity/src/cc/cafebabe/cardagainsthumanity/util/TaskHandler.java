@@ -14,6 +14,7 @@ import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.game.GameWorld;
 import cc.cafebabe.cardagainsthumanity.game.PlayerContainer;
 import cc.cafebabe.cardagainsthumanity.game.Room;
+import cc.cafebabe.cardagainsthumanity.game.Round;
 import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.service.PlayerService;
@@ -27,7 +28,7 @@ public class TaskHandler implements Runnable {
 	public TaskHandler(){
 		this.tasks = new ArrayBlockingQueue<Task>(QUEUE_SIZE);
 	}
-
+	
 	@Override
 	public void run() {
 		this.running = true;
@@ -334,7 +335,82 @@ public class TaskHandler implements Runnable {
 		}
 		//接受审核完毕卡牌消息
 		else if(key.equals("pendover")){
+			if(player.getState() != 2) return;
 			
+			String approve = (String) map.get("ap");
+			String reject = (String) map.get("re");
+			
+			int[] apcids = {};
+			int[] recids = {};
+			
+			try{
+				String[] apcidsRaw = approve.split(",");
+				String[] recidsRaw = reject.split(",");
+				apcids = new int[apcidsRaw.length];
+				for(int i = 0; i < apcidsRaw.length; i++){
+					apcids[i] = Integer.parseInt(apcidsRaw[i]);
+				}
+				recids = new int[recidsRaw.length];
+				for(int i = 0; i < recidsRaw.length; i++){
+					recids[i] = Integer.parseInt(recidsRaw[i]);
+				}
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			CardsService.approveCards(apcids);
+			CardsService.rejectCards(recids);
+			CardsService.loadAllCards();
+		}
+		//接受更改房间设置消息
+		else if(key.equals("setroom")){
+			if(player.getRoomNumber() <= 0){
+				return;
+			}
+			
+			Room room = Server.gameWorld.getLobby().getRoom(player.getRoomNumber());
+			if(room == null){
+				return;
+			}
+			
+			int level = 0;
+			String name = "默认房间";
+			String password = "";
+			int[] packs = {1};
+			
+			try{
+				level = Integer.parseInt((String)map.get("lv"));
+				name = (String) map.get("name");
+				password = (String) map.get("pw");
+				String[] packsRaw = ((String) map.get("cp")).split(",");
+				List<Integer> tempPacks = new ArrayList<Integer>();
+				
+				for(int i = 0; i < packsRaw.length; i++){
+					int id = Integer.parseInt(packsRaw[i]);
+					if(CardsService.cardpacks.get(id).getNeedLevel() <= level){
+						tempPacks.add(id);
+					}
+				}
+				
+				packs = new int[tempPacks.size()];
+				for(int i = 0; i < tempPacks.size(); i++){
+					packs[i] = tempPacks.get(i);
+				}
+				
+				System.out.println(tempPacks.size());
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			
+			room.setName(name);
+			room.setPassword(password);
+			if(room.getRound() == null || room.getRound().getState() == Round.STATE_IDLE){
+				room.setCardpacks(packs);
+			}
+			
+			room.broadcastMessage(room.buildRoomShortInfo());
+			Server.gameWorld.getLobby().broadcastMessage(room.buildRoomShortInfo());
 		}
 	}
 	
@@ -510,8 +586,20 @@ public class TaskHandler implements Runnable {
 					
 					CardsService.addCardPack(name, level);
 					CardsService.loadAllCards();
-					player.sendMessage(Json2Map.BuildTextMessage("添加卡牌成功！"));
-					
+					player.sendMessage(Json2Map.BuildTextMessage("添加卡包成功！"));
+				}
+			}
+		}else if("delpack".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 2 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/delpack 卡包名"));
+				}else{
+					String name = texts[1];
+					CardsService.delCardPack(name);
+					CardsService.loadAllCards();
+					player.sendMessage(Json2Map.BuildTextMessage("删除卡包成功！"));
 				}
 			}
 		}else if("setexp".equals(command)){

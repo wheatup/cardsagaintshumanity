@@ -21,8 +21,8 @@ public class Server
 	public static GameWorld gameWorld;
 	static
 	{
-		DAOIniter.init();
 		gameWorld = new GameWorld();
+		DAOIniter.init();
 		handler = new TaskHandler();
 		handlerThread = new Thread(handler);
 		handlerThread.start();

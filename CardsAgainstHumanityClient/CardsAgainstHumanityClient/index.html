@@ -10,6 +10,8 @@
     <script src="src/script/app.js"></script>
 </head>
 <body oncontextmenu='return false'>
+    <audio id="cardaudio"></audio>
+    <audio id="playeraudio"></audio>
     <div id="wrapper" ondragstart='return false' onselectstart='return false' onselect='return false'>
         <div id="mask"></div>
         <div class="page" id="loginPage">
@@ -413,6 +415,29 @@
                 </div>
             </div>
             <div id="submit" class="button">创建</div>
+        </div>
+    </div>
+
+    <div class="settingsPage" id="setroom">
+        <div class="title">房间设置<div class="closeButton">X</div></div>
+        <div class="content">
+            <div class="option"><label>房间标题:</label><input id="roomtitle" type="text" value="默认房间" maxlength="20" /></div>
+            <div class="option"><label>房间密码:</label><input id="roompassword" type="text" value="" maxlength="20" /></div>
+            <div class="option">
+                <label>卡牌包:</label><br>
+                <div id="cardpacks">
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                    <div><input type="checkbox" value="1" id="cp1" /><label for="cp1">基本</label></div>
+                </div>
+            </div>
+            <div id="submit" class="button">确定</div>
         </div>
     </div>
 
