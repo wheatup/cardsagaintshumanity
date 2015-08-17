@@ -23,7 +23,7 @@ import cc.cafebabe.cardagainsthumanity.service.SugService;
 public class TaskHandler implements Runnable {
 	private boolean running = false;
 	private Queue<Task> tasks;
-	private static final int QUEUE_SIZE = 4096;
+	private static final int QUEUE_SIZE = 8192;
 	
 	public TaskHandler(){
 		this.tasks = new ArrayBlockingQueue<Task>(QUEUE_SIZE);
@@ -479,6 +479,48 @@ public class TaskHandler implements Runnable {
 			}
 			
 			room.startGame();
+		}
+		//接受出牌消息
+		else if(key.equals("pick")){
+			if(player.getRoomNumber() <= 0){
+				return;
+			}
+			
+			Room room = Server.gameWorld.getLobby().getRoom(player.getRoomNumber());
+			if(room == null){
+				return;
+			}
+			
+			if(room.getRound() == null || room.getRound().getState() != Round.STATE_PICKING){
+				return;
+			}
+			
+			if(room.getRound().getCzar() == player){
+				return;
+			}
+			
+			int round = 0;
+			try{
+				round = Integer.parseInt((String)map.get("r"));
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			if(room.getRound().getId() != round){
+				player.sendMessage(Json2Map.BuildTextMessage("操作已失效！"));
+				return;
+			}
+			
+			int[] cards = new int[0];
+			try{
+				String[] rawids = ((String)map.get("c")).split(",");
+				cards = new int[rawids.length];
+				for(int i = 0; i < cards.length; i++){
+					cards[i] = Integer.parseInt(rawids[i]);
+				}
+			}catch(Exception e){e.printStackTrace();}
+			
+			room.getRound().playerPick(player, cards);
 		}
 	}
 	

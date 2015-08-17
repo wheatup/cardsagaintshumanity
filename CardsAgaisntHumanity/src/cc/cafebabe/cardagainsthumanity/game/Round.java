@@ -25,9 +25,18 @@ public class Round extends PlayerContainer{
 	private Deck deck;
 	private Room room;
 	private Map<Player, Set<WhiteCard>> handCards;
+	private Map<Integer, Player> cardMap;
 	private List<Player> orderedPlayer;
+	private Set<int[]> cardsCombo;
 	private int czarIndex = 0;
+	private Player czar;
 	
+	public Player getCzar() {
+		return czar;
+	}
+	public void setCzar(Player czar) {
+		this.czar = czar;
+	}
 	public int getId(){return id;}
 	public void setId(int id){this.id = id;}
 	public BlackCard getBlackCard(){return blackCard;}
@@ -36,12 +45,15 @@ public class Round extends PlayerContainer{
 	public void setState(int state){this.state = state;}
 	
 	
+	
 	public Round(Room room, int[] packids){
 		this.room = room;
 		handCards = new HashMap<Player, Set<WhiteCard>>();
 		orderedPlayer = new ArrayList<Player>();
+		cardsCombo = new HashSet<int[]>();
 		deck = new Deck(packids);
 		id = 1;
+		cardMap = new HashMap<Integer, Player>();
 	}
 	
 	public void close(){
@@ -61,6 +73,8 @@ public class Round extends PlayerContainer{
 	}
 	
 	public void start(){
+		cardMap.clear();
+		cardsCombo.clear();
 		state = STATE_PICKING;
 		running = true;
 		for(Player p : room.getPlayers().values()){
@@ -85,6 +99,8 @@ public class Round extends PlayerContainer{
 	
 	public void nextRound(){
 		id++;
+		cardMap.clear();
+		cardsCombo.clear();
 		for(Player p : room.getPlayers().values()){
 			if(!players.containsValue(p)){
 				addOnePlayer(p);
@@ -100,12 +116,21 @@ public class Round extends PlayerContainer{
 			if(czarIndex >= orderedPlayer.size())
 				czarIndex = 0;
 			room.broadcastMessage(Json2Map.buildBlackCardInfo(blackCard, id, orderedPlayer.get(czarIndex).getPid()));
+			czar = orderedPlayer.get(czarIndex);
 			fillPlayerCards();
 			
 		}catch(Exception e){
 			e.printStackTrace();
 		}
 		czarIndex++;
+	}
+	
+	public void playerPick(Player player, int[] ids){
+		cardsCombo.add(ids);
+		for(int id : ids){
+			cardMap.put(id, player);
+		}
+		room.broadcastMessage(Json2Map.BuildKVMessage("picked", player.getPid()));
 	}
 	
 	public void rushToJudge(){

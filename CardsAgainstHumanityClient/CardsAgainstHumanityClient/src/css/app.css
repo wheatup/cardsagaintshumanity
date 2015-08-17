@@ -73,6 +73,7 @@
 
 #gamePage #leftArea #blackCardArea{width: 240px; height:144px;}
 #gamePage #leftArea #blackCardArea #blackCard{width: 236px; height:130px; background-color:#111; padding:5px; border:solid 2px #555; margin-top:10px;  font-size:18px; word-break:break-all;}
+#gamePage #leftArea #blackCardArea #blackCard .blank{display:inline; word-break:break-all;}
 #gamePage #leftArea #blackCardArea #blackCard #info{position:absolute; float:left; top:178px; color:#666; font-size:12px;}
 #gamePage #leftArea #blackCardArea #hostSettings #startGame{margin-top:5px; width:236px; }
 
@@ -181,3 +182,6 @@
 #pend #submit{width:200px;margin:0px auto; border:solid 2px #333;}
 
 #gamestart{width:500px; height:300px;}
+.preview {color:#fff; font-weight:bold; text-decoration:underline; margin-left:3px; margin-right:3px;}
+
+#czarmask {position:absolute; float:left; width:246px; height:572px; background-color:#000; margin-top:10px; line-height:572px; font-size:30px; color:#aaa; font-weight:bold; word-spacing:20px; text-align:center; border:solid 2px #555; filter:alpha(Opacity=70);-moz-opacity:0.7;opacity: 0.7;}

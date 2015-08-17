@@ -368,12 +368,12 @@ var PackageBuilder = (function () {
         var pack = '{"t":"startgame"}';
         return pack;
     };
-    PackageBuilder.buildPickCardPackage = function (card) {
-        var pack = '{"t":"pick", "c":"' + card + '"}';
+    PackageBuilder.buildPickCardPackage = function (card, round) {
+        var pack = '{"t":"pick", "c":"' + card + '", "r":"' + round + '"}';
         return pack;
     };
-    PackageBuilder.buildPickWinnerPackage = function (winner) {
-        var pack = '{"t":"pick", "w":"' + winner + '"}';
+    PackageBuilder.buildPickWinnerPackage = function (winner, round) {
+        var pack = '{"t":"pick", "w":"' + winner + '", "r":"' + round + '"}';
         return pack;
     };
     return PackageBuilder;
@@ -1081,14 +1081,17 @@ var PlayState = (function () {
         this.isPlayer = false;
         this.canReturnToLobby = false;
         this.currentBlackCardBlanks = 1;
+        this.selectedCards = [];
         this.currentRound = 0;
         this.czar = 0;
+        this.isMeCzar = false;
         this.players = new Array();
         this.spectators = new Array();
     }
     PlayState.prototype.showGamePage = function (data) {
         this.clearTimer();
         this.clearHandCard();
+        this.handCards = [];
         this.donePlayers = new Array();
         this.players = new Array();
         this.spectators = new Array();
@@ -1099,6 +1102,9 @@ var PlayState = (function () {
         this.showBlackCardArea();
         this.initRoomInfo(data);
         this.updateMyInfoDisplay();
+        this.selectedCards = [];
+        this.isMeCzar = false;
+        jQuery("#czarmask").hide();
         //jQuery(".settingsPage[id=gamestart]").show();
     };
     PlayState.prototype.initRoomInfo = function (data) {
@@ -1143,6 +1149,9 @@ var PlayState = (function () {
         MyEvent.bind("blackcard", this.onBlackCard, this);
         MyEvent.bind("whitecard", this.onWhiteCard, this);
         MyEvent.bind("pickcard", this.onPickCard, this);
+        MyEvent.bind("preview", this.onPreview, this);
+        MyEvent.bind("unpreview", this.onUnpreview, this);
+        MyEvent.bind("picked", this.onPlayerPicked, this);
     };
     PlayState.prototype.unbindEvents = function () {
         MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
@@ -1162,8 +1171,11 @@ var PlayState = (function () {
         MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
         MyEvent.unbind(Signal.OnClickStartGame, this.onClickStartGame);
         MyEvent.unbind("blackcard", this.onBlackCard);
-        MyEvent.unbind("whiteCard", this.onWhiteCard);
+        MyEvent.unbind("whitecard", this.onWhiteCard);
         MyEvent.unbind("pickcard", this.onPickCard);
+        MyEvent.unbind("preview", this.onPreview);
+        MyEvent.unbind("unpreview", this.onUnpreview);
+        MyEvent.unbind("picked", this.onPlayerPicked);
     };
     PlayState.prototype.onClickStartGame = function (data, _this) {
         if (!Main.isHost) {
@@ -1414,7 +1426,7 @@ var PlayState = (function () {
         for (var i = 0; i < this.players.length; i++) {
             var p = this.players[i];
             var done = false;
-            for (var di = 0; di < this.donePlayers.length; i++) {
+            for (var di = 0; di < this.donePlayers.length; di++) {
                 if (this.donePlayers[di] == p.pid) {
                     done = true;
                     break;
@@ -1542,6 +1554,13 @@ var PlayState = (function () {
         _this.setBlackCard(data.text, Main.getPackName(data.cp), data.au);
         _this.startTimer(20000 + _this.currentBlackCardBlanks * 5000);
         _this.updatePlayerList();
+        _this.selectedCards = [];
+        if (_this.czar == Main.me.pid) {
+            _this.setMeAsCzar();
+        }
+        else {
+            _this.setMeAsNotCzar();
+        }
     };
     PlayState.prototype.clearBadges = function () {
         var ele = jQuery("#gamePage #playerArea");
@@ -1575,12 +1594,23 @@ var PlayState = (function () {
         }
         jQuery("#gamePage #timerFill").css("width", per + "%");
     };
+    PlayState.prototype.setMeAsCzar = function () {
+        this.isMeCzar = true;
+        jQuery("#czarmask").show();
+    };
+    PlayState.prototype.setMeAsNotCzar = function () {
+        this.isMeCzar = false;
+        jQuery("#czarmask").hide();
+    };
     PlayState.prototype.setBlackCard = function (text, pc, author) {
         this.currentBlackCardText = text;
         for (var i = 1; i <= 3; i++) {
             text = text.replace("%b", '<label class="blank" id="bc' + i + '">____</label>');
         }
-        jQuery("#gamePage #blackCard").html('<div id="info">' + pc + ' 作者:' + author + '</div>' + text);
+        jQuery("#gamePage #blackCard").html('<div id="info">' + pc + ' 作者:' + author + '</div><div id="blackcardtext">' + text + '</div>');
+    };
+    PlayState.prototype.setBlackCardText = function (text) {
+        jQuery("#gamePage #blackcardtext").html(text);
     };
     PlayState.prototype.onWhiteCard = function (data, _this) {
         for (var i = 0; i < data.c.length; i++) {
@@ -1589,18 +1619,67 @@ var PlayState = (function () {
         _this.updateHandCardDisplay();
     };
     PlayState.prototype.clearHandCard = function () {
-        this.handCards = new Array();
+        this.handCards = [];
         this.updateHandCardDisplay();
     };
     PlayState.prototype.updateHandCardDisplay = function () {
+        jQuery("#gamePage #hand").empty();
         for (var i = 0; i < this.handCards.length; i++) {
             var card = this.handCards[i];
             jQuery("#gamePage #hand").append('<div title="卡牌包:' + card.packName + ' 作者:' + card.author + '" class="cards" cid="' + card.cid + '"><div id= "whitecard" cid="' + card.cid + '">' + card.text + '</div></div>');
-            jQuery("#gamePage #hand .cards").tapOrClick(function (e) { MyEvent.call("pickcard", jQuery(e.target).attr("cid")); });
         }
+        jQuery("#gamePage #hand .cards").tapOrClick(function (e) { MyEvent.call("pickcard", jQuery(e.target).attr("cid")); });
+        jQuery("#gamePage #hand .cards").mouseover(function (e) { MyEvent.call("preview", jQuery(e.target).html()); });
+        jQuery("#gamePage #hand .cards").mouseout(function (e) { MyEvent.call("unpreview", jQuery(e.target).html()); });
     };
+    //currentBlackCardBlanks
+    //selectedCards
     PlayState.prototype.onPickCard = function (data, _this) {
-        alert(data);
+        if (_this.selectedCards.length >= _this.currentBlackCardBlanks) {
+            return;
+        }
+        if (Main.currentRoom.state != 1) {
+            Util.showMessage("您现在不能出牌！");
+            return;
+        }
+        if (this.isMeCzar) {
+            Util.showMessage("裁判不能出牌！");
+            return;
+        }
+        _this.selectedCards[_this.selectedCards.length] = data;
+        if (_this.selectedCards.length >= _this.currentBlackCardBlanks) {
+            _this.sendPickCards();
+        }
+        jQuery("#gamePage #hand .cards[cid=" + data + "]").remove();
+        jQuery("#gamePage .blank[id=bc" + _this.selectedCards.length + "]").html(jQuery("#gamePage #whitecard[cid=" + data + "]").html());
+        jQuery("#gamePage .blank[id=bc" + _this.selectedCards.length + "]").addClass("preview");
+    };
+    PlayState.prototype.sendPickCards = function () {
+        for (var i = 0; i < this.selectedCards.length; i++) {
+            for (var j = 0; j < this.handCards.length; j++) {
+                if (this.selectedCards[i] == this.handCards[j].cid) {
+                    this.handCards.splice(j, 1);
+                    break;
+                }
+            }
+        }
+        Server.instance.send(PackageBuilder.buildPickCardPackage(this.selectedCards, this.currentRound), true, true);
+    };
+    PlayState.prototype.onPreview = function (data, _this) {
+        if (Main.currentRoom.state != 1)
+            return;
+        jQuery("#gamePage .blank[id=bc" + (_this.selectedCards.length + 1) + "]").html(data);
+        jQuery("#gamePage .blank[id=bc" + (_this.selectedCards.length + 1) + "]").addClass("preview");
+    };
+    PlayState.prototype.onUnpreview = function (data, _this) {
+        if (Main.currentRoom.state != 1)
+            return;
+        jQuery("#gamePage .blank[id=bc" + (_this.selectedCards.length + 1) + "]").html("____");
+        jQuery("#gamePage .blank[id=bc" + (_this.selectedCards.length + 1) + "]").removeClass("preview");
+    };
+    PlayState.prototype.onPlayerPicked = function (data, _this) {
+        _this.donePlayers.push(data);
+        _this.updatePlayerList();
     };
     PlayState.needTick = 0;
     PlayState.currentTick = 0;
