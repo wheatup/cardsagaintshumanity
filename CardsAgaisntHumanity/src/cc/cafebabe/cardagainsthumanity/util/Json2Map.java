@@ -16,6 +16,7 @@ import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 import javax.json.JsonWriter;
 
+import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.game.GameWorld;
 import cc.cafebabe.cardagainsthumanity.game.Lobby;
@@ -188,6 +189,9 @@ public class Json2Map
 		case PEND:
 			map.put("t", "pend");
 			break;
+		case BLACKCARD:
+			map.put("t", "blackcard");
+			break;
 		default:
 			map.put("t", "d");
 			break;
@@ -293,6 +297,15 @@ public class Json2Map
 	public static Map<String, Object> buildPendingInfo(){
 		Map<String, Object> map = BuildMapByType(MessageType.PEND);
 		map.put("c", CardsService.buildAllPendingCardsInfo());
+		return map;
+	}
+	
+	public static Map<String, Object> buildBlackCardInfo(BlackCard card){
+		Map<String, Object> map = BuildMapByType(MessageType.BLACKCARD);
+		map.put("text", card.getText());
+		map.put("cp", card.getPackid());
+		map.put("au", card.getPname());
+		map.put("bl", card.getBlankCount());
 		return map;
 	}
 }

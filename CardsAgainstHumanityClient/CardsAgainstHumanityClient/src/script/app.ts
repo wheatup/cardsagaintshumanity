@@ -146,6 +146,12 @@ class CardPack {
     public blackcount: number;
 }
 
+class WhiteCard {
+	public cid: number;
+	public text: string;
+	public author: string;
+}
+
 class Util {
 	public static replaceAll(org:string, findStr:string, repStr:string) {
 		var str: string = org;
@@ -400,6 +406,21 @@ class PackageBuilder {
 		var pack = '{"t":"hostkick", "pid":"' + pid + '"}';
         return pack;
 	}
+
+	public static buildStartGamePackage(): string {
+		var pack = '{"t":"startgame"}';
+        return pack;
+	}
+
+	public static buildPickCardPackage(card: string): string {
+		var pack = '{"t":"pick", "c":"' + card + '"}';
+        return pack;
+	}
+
+	public static buildPickWinnerPackage(winner: string): string {
+		var pack = '{"t":"pick", "w":"' + winner + '"}';
+        return pack;
+	}
 }
 
 class MessageAnalysis {
@@ -446,6 +467,7 @@ class Signal {
     public static OnClickRoomSetButton: string = "OnClickRoomSetButton";
     public static OnClickRoomSetButtonOK: string = "OnClickRoomSetButtonOK";
     public static KickPlayer: string = "KickPlayer";
+	public static OnClickStartGame: string = "OnClickStartGame";
 }
 
 class Main {
@@ -507,6 +529,9 @@ class Main {
         });
         jQuery('#lobbyPage #inputArea #submit').tapOrClick(function (event) {
             MyEvent.call(Signal.SendText);
+        });
+		jQuery('#gamePage #hostSettings #startGame').tapOrClick(function (event) {
+            MyEvent.call(Signal.OnClickStartGame);
         });
         jQuery('#settingsArea #createRoom').tapOrClick(function (event) {
             jQuery("#createroom #roomtitle").val(Main.me.name + "的房间");
@@ -648,7 +673,9 @@ class Main {
 
         for (var i: number = 0; i < Main.cardpacks.length; i++) {
             var cardPack: CardPack = Main.cardpacks[i];
-            name = cardPack.name;
+			if (pid == cardPack.id) {
+				name = cardPack.name;
+			}
         }
 
         return name;
@@ -1182,7 +1209,9 @@ class PlayState{
 	private players: Array<Player>;
     private spectators: Array<Player>;
     private canReturnToLobby: boolean = false;
-    private gameState: number 
+	private handCards: Array<WhiteCard>;
+	private currentBlackCardText: string;
+	private currentBlackCardBlanks: number = 1;
 
 	public constructor() {
         this.players = new Array<Player>();
@@ -1227,6 +1256,8 @@ class PlayState{
             jQuery("#settingsArea #spectate").html("观战");
         else
             jQuery("#settingsArea #spectate").html("加入");
+		this.handCards = new Array<WhiteCard>();
+		this.checkGameStartButton();
     }
 
     private bindEvents(): void {
@@ -1243,8 +1274,11 @@ class PlayState{
         MyEvent.bind(Signal.HOST, this.setMeAsHost, this);
         MyEvent.bind(Signal.UNHOST, this.setMeAsNotHost, this);
         MyEvent.bind("sri", this.onRoomChange, this);
-		MyEvent.bind("kicked", this.onKickedByHost, this);
+		MyEvent.bind("kicked", this.onKicked, this);
         MyEvent.bind(Signal.KickPlayer, this.onKickPlayer, this);
+		MyEvent.bind(Signal.OnClickStartGame, this.onClickStartGame, this);
+
+		MyEvent.bind("blackcard", this.onBlackCard, this);
     }
 
     private unbindEvents(): void {
@@ -1261,13 +1295,34 @@ class PlayState{
         MyEvent.unbind(Signal.HOST, this.setMeAsHost);
         MyEvent.unbind(Signal.UNHOST, this.setMeAsNotHost);
         MyEvent.unbind("sri", this.onRoomChange);
-		MyEvent.unbind("kicked", this.onKickedByHost);
+		MyEvent.unbind("kicked", this.onKicked);
         MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
+		MyEvent.unbind(Signal.OnClickStartGame, this.onClickStartGame);
+		MyEvent.unbind("blackcard", this.onBlackCard);
     }
 
-	private onKickedByHost(data: any, _this: PlayState): void {
-		Util.showMessage("您被房主踢出了房间！");
-		_this.onClickReturnLobby(null, _this);
+	public onClickStartGame(data: any, _this: PlayState): void {
+		if (!Main.isHost) {
+			Util.showMessage("只有房主才能这么做！");
+			return;
+		}
+
+		if (Main.currentRoom.state != 0) {
+			Util.showMessage("游戏已经开始了！");
+			return;
+		}
+
+		Server.instance.send(PackageBuilder.buildStartGamePackage(), true, true);
+	}
+
+	private onKicked(data: any, _this: PlayState): void {
+		if (data == "host") {
+			_this.onClickReturnLobby(null, _this);
+			Util.showMessage("您被房主踢出了房间！");
+		} else {
+			_this.onClickReturnLobby(null, _this);
+			Util.showMessage("您由于连续3次没有被系统请出了房间！");
+		}
 	}
 
     private onKickPlayer(data: any, _this: PlayState): void {
@@ -1535,7 +1590,28 @@ class PlayState{
             var p: Player = this.spectators[i];
             elesp.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div></div>');
         }
+		this.checkGameStartButton();
     }
+
+	public checkGameStartButton(): void {
+		if (Main.isHost && Main.currentRoom.state == 0) {
+			if (this.players.length >= 2) {
+				this.showGameStartButton();
+			} else {
+				this.hideGameStartButton();
+			}
+		}
+	}
+
+	public showGameStartButton(): void {
+		jQuery("#gamePage #blackCard").hide();
+		jQuery("#gamePage #hostSettings").show();
+	}
+
+	public hideGameStartButton(): void {
+		jQuery("#gamePage #blackCard").show();
+		jQuery("#gamePage #hostSettings").hide();
+	}
 
     public onReceiveText(data: any, _this: PlayState): void {
         var pid: any = parseInt(data.pid);
@@ -1624,6 +1700,58 @@ class PlayState{
         jQuery("#gamePage").hide();
         Main.lobbyState.returnToLobbyPage(data);
     }
+
+	public onBlackCard(data: any, _this: PlayState): void {
+		_this.hideGameStartButton();
+		_this.currentBlackCardBlanks = parseInt(data.bl);
+		_this.setBlackCard(data.text, Main.getPackName(data.cp), data.au);
+		_this.startTimer(20000 + _this.currentBlackCardBlanks * 5000);
+	}
+
+	private static needTick: number = 0;
+	private static currentTick: number = 0;
+	private static interval: number = -1;
+	public startTimer(time: number): void {
+		if (PlayState.interval != -1) {
+			clearInterval(PlayState.interval);
+		}
+
+		PlayState.needTick = time / 50;
+		PlayState.currentTick = 0;
+		PlayState.interval = setInterval(this.tick, 50);
+		
+	}
+
+	public tick(): void {
+		PlayState.currentTick++;
+		var per: number = (PlayState.currentTick / PlayState.needTick) * 100;
+		per = 100 - per;
+		if (per <= 0) {
+			per = 0;
+			clearInterval(PlayState.interval);
+		}
+		jQuery("#gamePage #timerFill").css("width", per + "%");
+		
+	}
+
+	public setBlackCard(text: string, pc: string, author: string): void {
+		this.currentBlackCardText = text;
+		for (var i: number = 1; i <= 3; i++) {
+			text = text.replace("%b", '<label class="blank" id="bc' + i + '">____</label>');
+		}
+		jQuery("#gamePage #blackCard").html('<div id="info">' + pc + ' 作者:' + author + '</div>' + text);
+	}
+
+	public clearHandCard(): void {
+		this.handCards = new Array<WhiteCard>();
+		this.updateHandCardDisplay();
+	}
+
+	public updateHandCardDisplay(): void {
+		for (var i: number = 0; i < this.handCards.length; i++) {
+
+		}
+	}
 }
 
 window.onload = () => {

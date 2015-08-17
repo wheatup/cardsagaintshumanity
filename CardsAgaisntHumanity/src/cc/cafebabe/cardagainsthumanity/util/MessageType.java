@@ -16,5 +16,6 @@ public enum MessageType
 	ADDNEWROOM,
 	SWITCHPLACE,
 	CARDSENDED,
-	PEND
+	PEND,
+	BLACKCARD
 }

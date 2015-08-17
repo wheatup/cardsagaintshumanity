@@ -66,6 +66,9 @@ public class TaskHandler implements Runnable {
 		case MESSAGE:
 			handleMessage(task.getSession(), task.getMessage());
 			break;
+		case TIMER:
+			handleTimer(task.getMessage());
+			break;
 		}
 	}
 	
@@ -453,7 +456,29 @@ public class TaskHandler implements Runnable {
 			}
 			
 			r.removePlayerFromRoom(target);
-			target.sendMessage(Json2Map.BuildFlagMessage("kicked"));
+			target.sendMessage(Json2Map.BuildKVMessage("kicked", "host"));
+		}
+		//接受房主开始游戏消息
+		else if(key.equals("startgame")){
+			if(player.getRoomNumber() <= 0){
+				return;
+			}
+			
+			Room room = Server.gameWorld.getLobby().getRoom(player.getRoomNumber());
+			if(room == null){
+				return;
+			}
+			
+			if(room.getHost() != player){
+				return;
+			}
+			
+			if(room.getRound() != null && room.getRound().getState() != Round.STATE_IDLE){
+				player.sendMessage(Json2Map.BuildTextMessage("游戏已经开始了！"));
+				return;
+			}
+			
+			room.startGame();
 		}
 	}
 	
@@ -678,6 +703,42 @@ public class TaskHandler implements Runnable {
 		
 		else{
 			player.sendMessage(Json2Map.BuildFlagMessage("uc"));
+		}
+	}
+	
+	private void handleTimer(String message){
+		Map<String, Object> map = Json2Map.readFromJson(message);
+		if(map == null || map.size() == 0){
+			System.out.println("未知消息: " + message);
+			return;
+		}
+		
+		String type = (String) map.get("t");
+		
+		int roomid = 0;
+		
+		try{
+			roomid = Integer.parseInt((String) map.get("room"));
+		}catch(Exception e){}
+		
+		Room r = Server.gameWorld.getLobby().getRoom(roomid);
+		
+		if(r == null)
+			return;
+		
+		if(r.getRound() == null)
+			return;
+		
+		if(r.getRound().getState() == Round.STATE_IDLE){
+			return;
+		}
+		
+		if(type.equals("judge")){
+			r.getRound().rushToJudge();
+		}else if(type.equals("rank")){
+			r.getRound().rushToRank();
+		}else if(type.equals("pick")){
+			r.getRound().rushToPick();
 		}
 	}
 }

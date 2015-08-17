@@ -139,6 +139,10 @@ public class Room extends PlayerContainer{
 				setHost(null);
 		}
 		
+		if(getRound() != null){
+			getRound().removeOnePlayer(player);
+		}
+		
 		if(this.players.size() == 0 && this.spectateArea.players.size() == 0){
 			Server.gameWorld.getLobby().destroyRoom(id);
 		}else{
@@ -169,6 +173,9 @@ public class Room extends PlayerContainer{
 				removePlayer(player);
 				orderedPlayer.remove(player);
 				spectateArea.addPlayer(player);
+				if(getRound() != null){
+					getRound().removeOnePlayer(player);
+				}
 				if(host == player){
 					if(orderedPlayer.size() > 0)
 						setHost(orderedPlayer.get(0));
@@ -210,5 +217,10 @@ public class Room extends PlayerContainer{
 		}
 		map.put("cp", cardpacks);
 		return map;
+	}
+	
+	public void startGame(){
+		this.round = new Round(this, this.cardpacks);
+		this.round.start();
 	}
 }
