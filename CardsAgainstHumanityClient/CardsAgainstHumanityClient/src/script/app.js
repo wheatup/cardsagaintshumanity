@@ -168,6 +168,14 @@ var Util = (function () {
         p.fish = data.fish;
         return p;
     };
+    Util.convertWhiteCardData = function (data) {
+        var card = new WhiteCard();
+        card.cid = data.id;
+        card.author = data.au;
+        card.packName = Main.getPackName(data.cp);
+        card.text = data.text;
+        return card;
+    };
     Util.convertRoomData = function (data) {
         var r = new Room();
         r.id = data.id;
@@ -1041,6 +1049,11 @@ var LobbyState = (function () {
             alert("卡牌内容不能为空!");
             return;
         }
+        if (cardType == 1 && text.indexOf("%b") >= 0) {
+            if (!confirm("您选择了提交白卡，但是内容却包含了黑卡横线占位符(%b)，确定继续提交吗？")) {
+                return;
+            }
+        }
         Server.instance.send(PackageBuilder.buildCreateCardPackage(cardType, cardPack, text), true, true);
         localStorage["lastSendTime"] = new Date().getTime() + 60000;
         Main.OnClickCloseSettings(null, null);
@@ -1068,10 +1081,15 @@ var PlayState = (function () {
         this.isPlayer = false;
         this.canReturnToLobby = false;
         this.currentBlackCardBlanks = 1;
+        this.currentRound = 0;
+        this.czar = 0;
         this.players = new Array();
         this.spectators = new Array();
     }
     PlayState.prototype.showGamePage = function (data) {
+        this.clearTimer();
+        this.clearHandCard();
+        this.donePlayers = new Array();
         this.players = new Array();
         this.spectators = new Array();
         this.canReturnToLobby = true;
@@ -1103,7 +1121,6 @@ var PlayState = (function () {
             jQuery("#settingsArea #spectate").html("观战");
         else
             jQuery("#settingsArea #spectate").html("加入");
-        this.handCards = new Array();
         this.checkGameStartButton();
     };
     PlayState.prototype.bindEvents = function () {
@@ -1124,6 +1141,8 @@ var PlayState = (function () {
         MyEvent.bind(Signal.KickPlayer, this.onKickPlayer, this);
         MyEvent.bind(Signal.OnClickStartGame, this.onClickStartGame, this);
         MyEvent.bind("blackcard", this.onBlackCard, this);
+        MyEvent.bind("whitecard", this.onWhiteCard, this);
+        MyEvent.bind("pickcard", this.onPickCard, this);
     };
     PlayState.prototype.unbindEvents = function () {
         MyEvent.unbind(Signal.PLAYERENTER, this.onPlayerEnter);
@@ -1143,6 +1162,8 @@ var PlayState = (function () {
         MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
         MyEvent.unbind(Signal.OnClickStartGame, this.onClickStartGame);
         MyEvent.unbind("blackcard", this.onBlackCard);
+        MyEvent.unbind("whiteCard", this.onWhiteCard);
+        MyEvent.unbind("pickcard", this.onPickCard);
     };
     PlayState.prototype.onClickStartGame = function (data, _this) {
         if (!Main.isHost) {
@@ -1392,7 +1413,14 @@ var PlayState = (function () {
         elesp.empty();
         for (var i = 0; i < this.players.length; i++) {
             var p = this.players[i];
-            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div><div id= "title" class="czar" pid="' + p.pid + '">裁判</div></div>');
+            var done = false;
+            for (var di = 0; di < this.donePlayers.length; i++) {
+                if (this.donePlayers[di] == p.pid) {
+                    done = true;
+                    break;
+                }
+            }
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + (done ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
             jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
         for (var i = 0; i < this.spectators.length; i++) {
@@ -1481,6 +1509,7 @@ var PlayState = (function () {
             Util.showMessage(p.name + "进入对局");
         }
         if (id == Main.me.pid) {
+            this.clearHandCard();
             if (place == 0) {
                 jQuery("#settingsArea #spectate").html("观战");
                 _this.isPlayer = true;
@@ -1504,10 +1533,24 @@ var PlayState = (function () {
         Main.lobbyState.returnToLobbyPage(data);
     };
     PlayState.prototype.onBlackCard = function (data, _this) {
+        Main.currentRoom.state = 1;
         _this.hideGameStartButton();
         _this.currentBlackCardBlanks = parseInt(data.bl);
+        _this.currentRound = parseInt(data.id);
+        _this.czar = data.czar;
+        Util.showMessage("第" + _this.currentRound + "轮游戏已开始，裁判是 " + _this.getPlayerByPid(data.czar).name);
         _this.setBlackCard(data.text, Main.getPackName(data.cp), data.au);
         _this.startTimer(20000 + _this.currentBlackCardBlanks * 5000);
+        _this.updatePlayerList();
+    };
+    PlayState.prototype.clearBadges = function () {
+        var ele = jQuery("#gamePage #playerArea");
+        ele.empty();
+        for (var i = 0; i < this.players.length; i++) {
+            var p = this.players[i];
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div></div>');
+            jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
+        }
     };
     PlayState.prototype.startTimer = function (time) {
         if (PlayState.interval != -1) {
@@ -1516,6 +1559,11 @@ var PlayState = (function () {
         PlayState.needTick = time / 50;
         PlayState.currentTick = 0;
         PlayState.interval = setInterval(this.tick, 50);
+    };
+    PlayState.prototype.clearTimer = function () {
+        if (PlayState.interval != -1) {
+            clearInterval(PlayState.interval);
+        }
     };
     PlayState.prototype.tick = function () {
         PlayState.currentTick++;
@@ -1534,13 +1582,25 @@ var PlayState = (function () {
         }
         jQuery("#gamePage #blackCard").html('<div id="info">' + pc + ' 作者:' + author + '</div>' + text);
     };
+    PlayState.prototype.onWhiteCard = function (data, _this) {
+        for (var i = 0; i < data.c.length; i++) {
+            _this.handCards.push(Util.convertWhiteCardData(data.c[i]));
+        }
+        _this.updateHandCardDisplay();
+    };
     PlayState.prototype.clearHandCard = function () {
         this.handCards = new Array();
         this.updateHandCardDisplay();
     };
     PlayState.prototype.updateHandCardDisplay = function () {
         for (var i = 0; i < this.handCards.length; i++) {
+            var card = this.handCards[i];
+            jQuery("#gamePage #hand").append('<div title="卡牌包:' + card.packName + ' 作者:' + card.author + '" class="cards" cid="' + card.cid + '"><div id= "whitecard" cid="' + card.cid + '">' + card.text + '</div></div>');
+            jQuery("#gamePage #hand .cards").tapOrClick(function (e) { MyEvent.call("pickcard", jQuery(e.target).attr("cid")); });
         }
+    };
+    PlayState.prototype.onPickCard = function (data, _this) {
+        alert(data);
     };
     PlayState.needTick = 0;
     PlayState.currentTick = 0;

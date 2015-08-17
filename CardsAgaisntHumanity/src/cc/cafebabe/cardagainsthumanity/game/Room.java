@@ -132,6 +132,9 @@ public class Room extends PlayerContainer{
 		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
 		orderedPlayer.remove(player);
 		spectateArea.removePlayerFromSpectator(player);
+		if(round != null)
+			round.removeOnePlayer(player);
+		
 		if(player == host){
 			if(orderedPlayer.size() > 0)
 				setHost(orderedPlayer.get(0));
@@ -221,6 +224,9 @@ public class Room extends PlayerContainer{
 	
 	public void startGame(){
 		this.round = new Round(this, this.cardpacks);
+		for(int i = 0; i < orderedPlayer.size(); i++){
+			this.round.addOnePlayer(orderedPlayer.get(i));
+		}
 		this.round.start();
 	}
 }

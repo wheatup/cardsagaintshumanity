@@ -150,6 +150,7 @@ class WhiteCard {
 	public cid: number;
 	public text: string;
 	public author: string;
+	public packName: string;
 }
 
 class Util {
@@ -188,6 +189,15 @@ class Util {
         p.fish = data.fish;
 		return p;
     }
+
+	public static convertWhiteCardData(data: any): WhiteCard {
+		var card: WhiteCard = new WhiteCard();
+		card.cid = data.id;
+		card.author = data.au;
+		card.packName = Main.getPackName(data.cp);
+		card.text = data.text;
+		return card;
+	}
 
     public static convertRoomData(data: any): Room {
         var r: Room = new Room();
@@ -1182,6 +1192,12 @@ class LobbyState {
             return
         }
 
+		if (cardType == 1 && text.indexOf("%b") >= 0) {
+			if (!confirm("您选择了提交白卡，但是内容却包含了黑卡横线占位符(%b)，确定继续提交吗？")) {
+				return;
+			}
+		}
+
         Server.instance.send(PackageBuilder.buildCreateCardPackage(cardType, cardPack, text), true, true);
         localStorage["lastSendTime"] = new Date().getTime() + 60000;
         Main.OnClickCloseSettings(null, null);
@@ -1212,6 +1228,9 @@ class PlayState{
 	private handCards: Array<WhiteCard>;
 	private currentBlackCardText: string;
 	private currentBlackCardBlanks: number = 1;
+	private currentRound: number = 0;
+	private czar: number = 0;
+	private donePlayers: Array<number>;
 
 	public constructor() {
         this.players = new Array<Player>();
@@ -1219,6 +1238,9 @@ class PlayState{
 	}
 
     public showGamePage(data: any): void {
+		this.clearTimer();
+		this.clearHandCard();
+		this.donePlayers = new Array<number>();
         this.players = new Array<Player>();
         this.spectators = new Array<Player>();
         this.canReturnToLobby = true;
@@ -1256,7 +1278,6 @@ class PlayState{
             jQuery("#settingsArea #spectate").html("观战");
         else
             jQuery("#settingsArea #spectate").html("加入");
-		this.handCards = new Array<WhiteCard>();
 		this.checkGameStartButton();
     }
 
@@ -1279,6 +1300,8 @@ class PlayState{
 		MyEvent.bind(Signal.OnClickStartGame, this.onClickStartGame, this);
 
 		MyEvent.bind("blackcard", this.onBlackCard, this);
+		MyEvent.bind("whitecard", this.onWhiteCard, this);
+		MyEvent.bind("pickcard", this.onPickCard, this);
     }
 
     private unbindEvents(): void {
@@ -1299,6 +1322,8 @@ class PlayState{
         MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
 		MyEvent.unbind(Signal.OnClickStartGame, this.onClickStartGame);
 		MyEvent.unbind("blackcard", this.onBlackCard);
+		MyEvent.unbind("whiteCard", this.onWhiteCard);
+		MyEvent.unbind("pickcard", this.onPickCard);
     }
 
 	public onClickStartGame(data: any, _this: PlayState): void {
@@ -1580,9 +1605,20 @@ class PlayState{
         var elesp: any = jQuery("#gamePage #spectateArea");
         ele.empty();
         elesp.empty();
+		
+
         for (var i = 0; i < this.players.length; i++) {
             var p: Player = this.players[i];
-            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div><div id= "title" class="czar" pid="' + p.pid + '">裁判</div></div>');
+
+			var done: boolean = false;
+			for (var di: number = 0; di < this.donePlayers.length; i++) {
+				if (this.donePlayers[di] == p.pid) {
+					done = true;
+					break;
+				}
+			}
+
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + (done ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
             jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
 
@@ -1677,6 +1713,7 @@ class PlayState{
 
 
         if (id == Main.me.pid) {
+			this.clearHandCard();
             if (place == 0) {
                 jQuery("#settingsArea #spectate").html("观战");
                 _this.isPlayer = true;
@@ -1702,10 +1739,25 @@ class PlayState{
     }
 
 	public onBlackCard(data: any, _this: PlayState): void {
+		Main.currentRoom.state = 1;
 		_this.hideGameStartButton();
 		_this.currentBlackCardBlanks = parseInt(data.bl);
+		_this.currentRound = parseInt(data.id);
+		_this.czar = data.czar;
+		Util.showMessage("第" + _this.currentRound + "轮游戏已开始，裁判是 " + _this.getPlayerByPid(data.czar).name);
 		_this.setBlackCard(data.text, Main.getPackName(data.cp), data.au);
 		_this.startTimer(20000 + _this.currentBlackCardBlanks * 5000);
+		_this.updatePlayerList();
+	}
+
+	public clearBadges(): void {
+		var ele: any = jQuery("#gamePage #playerArea");
+        ele.empty();
+		for (var i = 0; i < this.players.length; i++) {
+            var p: Player = this.players[i];
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div></div>');
+            jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
+        }
 	}
 
 	private static needTick: number = 0;
@@ -1719,7 +1771,12 @@ class PlayState{
 		PlayState.needTick = time / 50;
 		PlayState.currentTick = 0;
 		PlayState.interval = setInterval(this.tick, 50);
-		
+	}
+
+	public clearTimer(): void {
+		if (PlayState.interval != -1) {
+			clearInterval(PlayState.interval);
+		}
 	}
 
 	public tick(): void {
@@ -1742,6 +1799,13 @@ class PlayState{
 		jQuery("#gamePage #blackCard").html('<div id="info">' + pc + ' 作者:' + author + '</div>' + text);
 	}
 
+	public onWhiteCard(data: any, _this: PlayState): void {
+		for (var i = 0; i < data.c.length; i++) {
+			_this.handCards.push(Util.convertWhiteCardData(data.c[i]));
+		}
+		_this.updateHandCardDisplay();
+	}
+
 	public clearHandCard(): void {
 		this.handCards = new Array<WhiteCard>();
 		this.updateHandCardDisplay();
@@ -1749,8 +1813,14 @@ class PlayState{
 
 	public updateHandCardDisplay(): void {
 		for (var i: number = 0; i < this.handCards.length; i++) {
-
+			var card: WhiteCard = this.handCards[i];
+			jQuery("#gamePage #hand").append('<div title="卡牌包:' + card.packName + ' 作者:' + card.author + '" class="cards" cid="' + card.cid + '"><div id= "whitecard" cid="' + card.cid + '">' + card.text + '</div></div>');
+			jQuery("#gamePage #hand .cards").tapOrClick(function (e) { MyEvent.call("pickcard", jQuery(e.target).attr("cid")); });
 		}
+	}
+
+	public onPickCard(data: any, _this: PlayState): void {
+		alert(data);
 	}
 }
 

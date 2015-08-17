@@ -4,6 +4,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -18,6 +19,7 @@ import javax.json.JsonWriter;
 
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
+import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
 import cc.cafebabe.cardagainsthumanity.game.GameWorld;
 import cc.cafebabe.cardagainsthumanity.game.Lobby;
 import cc.cafebabe.cardagainsthumanity.game.Room;
@@ -192,6 +194,9 @@ public class Json2Map
 		case BLACKCARD:
 			map.put("t", "blackcard");
 			break;
+		case WHITECARD:
+			map.put("t", "whitecard");
+			break;
 		default:
 			map.put("t", "d");
 			break;
@@ -300,12 +305,31 @@ public class Json2Map
 		return map;
 	}
 	
-	public static Map<String, Object> buildBlackCardInfo(BlackCard card){
+	public static Map<String, Object> buildBlackCardInfo(BlackCard card, int roundId, long czar){
 		Map<String, Object> map = BuildMapByType(MessageType.BLACKCARD);
 		map.put("text", card.getText());
 		map.put("cp", card.getPackid());
 		map.put("au", card.getPname());
 		map.put("bl", card.getBlankCount());
+		map.put("id", roundId);
+		map.put("czar", czar);
 		return map;
 	}
+	
+	public static Map<String, Object> buildWhiteCardInfo(Set<WhiteCard> cards){
+		Map<String, Object> map = BuildMapByType(MessageType.WHITECARD);
+		HashMapArray hma = new HashMapArray();
+		for(WhiteCard c : cards){
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("text", c.getText());
+			m.put("cp", c.getPackid());
+			m.put("au", c.getPname());
+			m.put("id", c.getCid());
+			hma.addMap(m);
+		}
+		map.put("c", hma);
+		return map;
+	}
+	
+	
 }
