@@ -412,6 +412,49 @@ public class TaskHandler implements Runnable {
 			room.broadcastMessage(room.buildRoomShortInfo());
 			Server.gameWorld.getLobby().broadcastMessage(room.buildRoomShortInfo());
 		}
+		//接受房主踢出玩家消息
+		else if(key.equals("hostkick")){
+			if(player.getRoomNumber() <= 0){
+				player.sendMessage(Json2Map.BuildTextMessage("获取房间错误！"));
+				return;
+			}
+			Room r = Server.gameWorld.getLobby().getRoom(player.getRoomNumber());
+			if(r == null){
+				player.sendMessage(Json2Map.BuildTextMessage("获取房间错误！"));
+				return;
+			}
+			
+			if(r.getHost() != player){
+				player.sendMessage(Json2Map.BuildTextMessage("只有房主才可以踢人！"));
+				return;
+			}
+			
+			int pid = -1;
+			try{
+				pid = Integer.parseInt((String)map.get("pid"));
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			if(pid == -1){
+				player.sendMessage(Json2Map.BuildTextMessage("错误的玩家！"));
+				return;
+			}
+			
+			Player target = Server.gameWorld.getPlayer(pid);
+			if(target == null){
+				player.sendMessage(Json2Map.BuildTextMessage("该玩家不在线！"));
+				return;
+			}
+			
+			if(target.getRoomNumber() != player.getRoomNumber()){
+				player.sendMessage(Json2Map.BuildTextMessage("该玩家与你不在同一个房间！"));
+				return;
+			}
+			
+			r.removePlayerFromRoom(target);
+			target.sendMessage(Json2Map.BuildFlagMessage("kicked"));
+		}
 	}
 	
 	public void addTask(Task task){

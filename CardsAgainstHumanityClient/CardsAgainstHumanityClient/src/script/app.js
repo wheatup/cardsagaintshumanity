@@ -347,6 +347,10 @@ var PackageBuilder = (function () {
         var pack = '{"t":"pendover", "ap":"' + approve + '", "re":"' + reject + '"}';
         return pack;
     };
+    PackageBuilder.buildKickPlayerPackage = function (pid) {
+        var pack = '{"t":"hostkick", "pid":"' + pid + '"}';
+        return pack;
+    };
     return PackageBuilder;
 })();
 var MessageAnalysis = (function () {
@@ -1090,6 +1094,7 @@ var PlayState = (function () {
         MyEvent.bind(Signal.HOST, this.setMeAsHost, this);
         MyEvent.bind(Signal.UNHOST, this.setMeAsNotHost, this);
         MyEvent.bind("sri", this.onRoomChange, this);
+        MyEvent.bind("kicked", this.onKickedByHost, this);
         MyEvent.bind(Signal.KickPlayer, this.onKickPlayer, this);
     };
     PlayState.prototype.unbindEvents = function () {
@@ -1106,10 +1111,22 @@ var PlayState = (function () {
         MyEvent.unbind(Signal.HOST, this.setMeAsHost);
         MyEvent.unbind(Signal.UNHOST, this.setMeAsNotHost);
         MyEvent.unbind("sri", this.onRoomChange);
+        MyEvent.unbind("kicked", this.onKickedByHost);
         MyEvent.unbind(Signal.KickPlayer, this.onKickPlayer);
     };
+    PlayState.prototype.onKickedByHost = function (data, _this) {
+        Util.showMessage("您被房主踢出了房间！");
+        _this.onClickReturnLobby(null, _this);
+    };
     PlayState.prototype.onKickPlayer = function (data, _this) {
-        alert(data);
+        if (!Main.isHost)
+            return;
+        if (Main.me.pid == data) {
+            return;
+        }
+        if (confirm("是否将该玩家踢出房间？")) {
+            Server.instance.send(PackageBuilder.buildKickPlayerPackage(data), true, true);
+        }
     };
     PlayState.prototype.onRoomChange = function (data, _this) {
         jQuery("#gamePage #roomnum").html(data.id);
@@ -1328,7 +1345,7 @@ var PlayState = (function () {
         elesp.empty();
         for (var i = 0; i < this.players.length; i++) {
             var p = this.players[i];
-            ele.append('<div class="player" pid="' + p.pid + '"><div id= "name">' + p.name + '</div><div id= "level">Lv.' + p.getLevel() + '</div><div id= "score">' + 0 + '</div><div id= "title" class="czar">裁判</div></div>');
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + 0 + '</div><div id= "title" class="czar" pid="' + p.pid + '">裁判</div></div>');
             jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
         for (var i = 0; i < this.spectators.length; i++) {
