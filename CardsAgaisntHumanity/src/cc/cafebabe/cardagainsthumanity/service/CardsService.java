@@ -159,7 +159,6 @@ public class CardsService
 	}
 	
 	public static HashMapArray buildAllPendingCardsInfo(){
-		System.out.println("ass");
 		HashMapArray hma = new HashMapArray();
 		Set<Card> cards = getAllPendingCards();
 		if(cards != null)

@@ -22,6 +22,7 @@ public class Player
 	private GameData gameData;
 	private Session session;
 	private PlayerContainer container;
+	public int afk;
 	public PlayerContainer getContainer()
 	{
 		return container;

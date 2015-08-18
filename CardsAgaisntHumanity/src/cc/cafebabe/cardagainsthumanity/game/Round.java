@@ -7,11 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import cc.cafebabe.cardagainsthumanity.consts.TaskType;
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
+import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
+import cc.cafebabe.cardagainsthumanity.util.Task;
 
 public class Round extends PlayerContainer{
 	public static final int STATE_IDLE = 0;
@@ -45,17 +48,18 @@ public class Round extends PlayerContainer{
 	public void setBlackCard(BlackCard blackCard){this.blackCard = blackCard;}
 	public int getState(){return state;}
 	public void setState(int state){this.state = state;}
+	private int gameid;
 	
 	
-	
-	public Round(Room room, int[] packids){
+	public Round(Room room, int[] packids, int gameid){
 		this.room = room;
 		handCards = new HashMap<Player, Set<WhiteCard>>();
 		orderedPlayer = new ArrayList<Player>();
 		cardsCombo = new HashSet<WhiteCard[]>();
 		deck = new Deck(packids);
-		id = 1;
+		id = 0;
 		cardMap = new HashMap<Integer, Player>();
+		this.gameid = gameid;
 	}
 	
 	public void close(){
@@ -86,6 +90,10 @@ public class Round extends PlayerContainer{
 	}
 	
 	public void start(){
+		running = true;
+		for(Player p : players.values()){
+			p.afk = 0;
+		}
 		nextRound();
 	}
 	
@@ -116,7 +124,6 @@ public class Round extends PlayerContainer{
 			return;
 		}
 		needCards = players.size();
-		System.out.println(needCards);
 		this.blackCard = deck.getBlackCard();
 		picking();
 	}
@@ -134,6 +141,7 @@ public class Round extends PlayerContainer{
 			e.printStackTrace();
 		}
 		czarIndex++;
+		setTimer(25000 + blackCard.getBlankCount() * 5000, "judge", this.room.getId(), id, gameid);
 	}
 	
 	public void judging(){
@@ -142,6 +150,7 @@ public class Round extends PlayerContainer{
 			room.broadcastMessage(Json2Map.buildJudgingInfo(blackCard.getBlankCount(), cardsCombo));
 		else
 			nextRound();
+		setTimer(25000 + blackCard.getBlankCount() * 5000, "rank", this.room.getId(), id, gameid);
 	}
 	
 	public void stop(){
@@ -152,9 +161,24 @@ public class Round extends PlayerContainer{
 	
 	public void playerPick(Player player, int[] ids){
 		WhiteCard[] cards = new WhiteCard[ids.length];
+		
+		Set<WhiteCard> handcards = handCards.get(player);
+		Set<WhiteCard> removes = new HashSet<WhiteCard>();
 		for(int i = 0; i < ids.length; i++){
 			cards[i] = deck.getWhiteCardById(ids[i]);
+			
+			for(WhiteCard c : handcards){
+				if(c.getCid() == ids[i])
+					removes.add(c);
+			}
 		}
+		
+		for(WhiteCard c : removes){
+			handcards.remove(c);
+		}
+		
+		
+		player.afk = 0;
 		cardsCombo.add(cards);
 		for(int id : ids){
 			cardMap.put(id, player);
@@ -172,6 +196,7 @@ public class Round extends PlayerContainer{
 			CardsService.pickCard(in);
 		}
 		if(czar != null){
+			czar.afk = 0;
 			czar.getGameData().setFish(czar.getGameData().getFish()+1);
 			czar.getGameData().setExp(czar.getGameData().getExp()+1);
 			czar.saveGameData();
@@ -202,18 +227,85 @@ public class Round extends PlayerContainer{
 		}
 		
 		room.broadcastMessage(Json2Map.buildWinnerInfo(cidsraw, pid, combo, add));
+		setTimer(8000, "pick", this.room.getId(), id, gameid);
 	}
 	
 	
-	public void rushToJudge(){
+	public void rushToJudge(int r, int gid){
+		if(!running) return;
+		if(id != r || gameid != gid) return;
+		if(state >= STATE_JUDGING) return;
+		Set<Player> kickPlayers = new HashSet<Player>();
+		for(Player p: players.values()){
+			if(!cardMap.values().contains(p)){
+				p.afk++;
+				if(p.afk >= 3){
+					kickPlayers.add(p);
+				}
+			}
+		}
 		
+		for(Player p: kickPlayers){
+			p.sendMessage(Json2Map.BuildKVMessage("kicked", "afk"));
+			room.removePlayerFromRoom(p);
+			Server.gameWorld.getLobby().sendPlayerInLobby(p);
+		}		
+		if(cardsCombo.size() == 0)
+			nextRound();
+		else
+			judging();
 	}
 	
-	public void rushToRank(){
-		
+	public void rushToRank(int r, int gid){
+		System.out.println(r + "," + gid);
+		System.out.println(this.id + "," +  this.gameid);
+		System.out.println(state);
+		System.out.println(running);
+		if(!running) return;
+		if(this.id != r || this.gameid != gid) return;
+		if(state >= STATE_RANKING) return;
+		String name = "";
+		if(czar!=null){
+			czar.afk++;
+			czar.getGameData().setFish(Math.max(czar.getGameData().getFish()-1, 0));
+			czar.saveGameData();
+			czar.sendMessage(Json2Map.buildMyInfo(czar));
+			if(czar.afk >= 3){
+				czar.sendMessage(Json2Map.BuildKVMessage("kicked", "afk"));
+				room.removePlayerFromRoom(czar);
+				Server.gameWorld.getLobby().sendPlayerInLobby(czar);
+			}
+			name = czar.getName();
+		}
+		System.out.println("rushtorank");
+		room.broadcastMessage(Json2Map.BuildTextMessage(name + " 裁判时间已到，跳过裁判阶段，并扣除相应的裁判分。"));
+		nextRound();
 	}
 	
-	public void rushToPick(){
-		
+	public void rushToPick(int r, int gid){
+		if(!running) return;
+		if(this.id != r || this.gameid != gid) return;
+		nextRound();
+	}
+	
+	public void setTimer(final int time, final String signal, final int roomNum, final int rnd, final int gid){
+		new Thread(new Runnable()
+		{
+			
+			@Override
+			public void run()
+			{
+				try
+				{
+					Thread.sleep(time);
+				}
+				catch(InterruptedException e)
+				{
+					e.printStackTrace();
+				}
+				String pack = "{\"t\":\"" + signal + "\", \"room\":\"" + roomNum + "\", \"rnd\":\"" + rnd + "\", \"gid\":\"" + gid + "\"}";
+				Server.handler.addTask(new Task(null, TaskType.TIMER, pack));
+			}
+		}).start();
 	}
 }

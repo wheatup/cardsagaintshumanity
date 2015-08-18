@@ -1246,8 +1246,10 @@ class PlayState{
 		this.clearTimer();
 		this.clearHandCard();
 		this.handCards = [];
+		this.clearTableCards();
 		this.donePlayers = new Array<number>();
         this.players = new Array<Player>();
+		this.donePlayers = [];
         this.spectators = new Array<Player>();
         this.canReturnToLobby = true;
         this.bindEvents();
@@ -1287,6 +1289,7 @@ class PlayState{
         else
             jQuery("#settingsArea #spectate").html("加入");
 		this.checkGameStartButton();
+		
     }
 
     private bindEvents(): void {
@@ -1368,11 +1371,9 @@ class PlayState{
 
 	private onKicked(data: any, _this: PlayState): void {
 		if (data == "host") {
-			_this.onClickReturnLobby(null, _this);
 			Util.showMessage("您被房主踢出了房间！");
 		} else {
-			_this.onClickReturnLobby(null, _this);
-			Util.showMessage("您由于连续3次没有被系统请出了房间！");
+			Util.showMessage("您由于连续3次没有操作被系统请出了房间！");
 		}
 	}
 
@@ -1650,7 +1651,7 @@ class PlayState{
 				}
 			}
 
-            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + p.score + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + ((done && Main.currentRoom.state == 2) ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + p.score + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + ((done && Main.currentRoom.state == 1) ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
             jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
 
@@ -1863,9 +1864,11 @@ class PlayState{
 	}
 
 	public onWhiteCard(data: any, _this: PlayState): void {
+		_this.donePlayers = [];
 		for (var i = 0; i < data.c.length; i++) {
 			_this.handCards.push(Util.convertWhiteCardData(data.c[i]));
 		}
+		_this.clearTableCards();
 		_this.updateHandCardDisplay();
 	}
 
@@ -1961,6 +1964,7 @@ class PlayState{
 	}
 
 	public onJudge(data: any, _this: PlayState): void {
+		_this.donePlayers = [];
 		_this.startTimer(25000 + parseInt(data.bl) * 5000);
 		_this.clearBadgesWithoutCzar();
 		Main.currentRoom.state = 2;
@@ -2005,7 +2009,9 @@ class PlayState{
 		jQuery("#gamePage #table .cards").mouseout(function (e) { MyEvent.call("czarunpreview", jQuery(e.target).attr("cid")) });
 	}
 
-
+	public clearTableCards(): void {
+		jQuery("#gamePage #table .cards").empty();
+	}
 
 	public onLetwin(data: any, _this: PlayState): void {
 		if (Main.currentRoom.state != 2) return;
@@ -2017,9 +2023,9 @@ class PlayState{
 
 	public onStopped(data: any, _this: PlayState): void {
 		Main.currentRoom.state = 0;
+		_this.czar = 0;
 		_this.clearGamePage();
 		_this.updatePlayerList();
-		_this.czar = 0;
 	}
 
 	public onWinner(data: any, _this: PlayState): void {
@@ -2052,6 +2058,7 @@ class PlayState{
 		}
 
 		Main.sayByVoiceCard(vocalText);
+		_this.startTimer(8000);
 	}
 }
 

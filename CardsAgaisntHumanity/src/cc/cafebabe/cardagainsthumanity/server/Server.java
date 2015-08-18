@@ -16,7 +16,7 @@ import cc.cafebabe.cardagainsthumanity.util.TaskHandler;
 @ServerEndpoint("/server")
 public class Server
 {
-	private static TaskHandler handler;
+	public static TaskHandler handler;
 	private static Thread handlerThread;
 	public static GameWorld gameWorld;
 	static

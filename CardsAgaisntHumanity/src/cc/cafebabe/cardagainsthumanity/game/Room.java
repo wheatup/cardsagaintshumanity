@@ -18,6 +18,7 @@ public class Room extends PlayerContainer{
 	private List<Player> orderedPlayer;
 	
 	private int id;
+	private int gameid = 0;
 	private String name;
 	private String password;
 	private Round round;
@@ -128,7 +129,6 @@ public class Room extends PlayerContainer{
 	}
 	
 	public void removePlayerFromRoom(Player player){
-		System.out.println("remove");
 		removePlayer(player);
 		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
 		orderedPlayer.remove(player);
@@ -220,7 +220,8 @@ public class Room extends PlayerContainer{
 	}
 	
 	public void startGame(){
-		this.round = new Round(this, this.cardpacks);
+		gameid++;
+		this.round = new Round(this, this.cardpacks, gameid);
 		for(int i = 0; i < orderedPlayer.size(); i++){
 			this.round.addOnePlayer(orderedPlayer.get(i));
 		}

@@ -260,6 +260,8 @@ public class TaskHandler implements Runnable {
 					room.removePlayerFromRoom(player);
 					Server.gameWorld.getLobby().sendPlayerInLobby(player);
 				}
+			}else{
+				Server.gameWorld.getLobby().sendPlayerInLobby(player);
 			}
 		}
 		//接收切换座位消息
@@ -456,6 +458,7 @@ public class TaskHandler implements Runnable {
 			}
 			
 			r.removePlayerFromRoom(target);
+			Server.gameWorld.getLobby().sendPlayerInLobby(target);
 			target.sendMessage(Json2Map.BuildKVMessage("kicked", "host"));
 		}
 		//接受房主开始游戏消息
@@ -798,9 +801,13 @@ public class TaskHandler implements Runnable {
 		String type = (String) map.get("t");
 		
 		int roomid = 0;
+		int rnd = 0;
+		int gid = 0;
 		
 		try{
 			roomid = Integer.parseInt((String) map.get("room"));
+			rnd = Integer.parseInt((String) map.get("rnd"));
+			gid = Integer.parseInt((String) map.get("gid"));
 		}catch(Exception e){}
 		
 		Room r = Server.gameWorld.getLobby().getRoom(roomid);
@@ -816,11 +823,11 @@ public class TaskHandler implements Runnable {
 		}
 		
 		if(type.equals("judge")){
-			r.getRound().rushToJudge();
+			r.getRound().rushToJudge(rnd, gid);
 		}else if(type.equals("rank")){
-			r.getRound().rushToRank();
+			r.getRound().rushToRank(rnd, gid);
 		}else if(type.equals("pick")){
-			r.getRound().rushToPick();
+			r.getRound().rushToPick(rnd, gid);
 		}
 	}
 }

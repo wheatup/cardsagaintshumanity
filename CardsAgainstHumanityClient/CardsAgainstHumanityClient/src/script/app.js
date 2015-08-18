@@ -1093,8 +1093,10 @@ var PlayState = (function () {
         this.clearTimer();
         this.clearHandCard();
         this.handCards = [];
+        this.clearTableCards();
         this.donePlayers = new Array();
         this.players = new Array();
+        this.donePlayers = [];
         this.spectators = new Array();
         this.canReturnToLobby = true;
         this.bindEvents();
@@ -1203,12 +1205,10 @@ var PlayState = (function () {
     };
     PlayState.prototype.onKicked = function (data, _this) {
         if (data == "host") {
-            _this.onClickReturnLobby(null, _this);
             Util.showMessage("您被房主踢出了房间！");
         }
         else {
-            _this.onClickReturnLobby(null, _this);
-            Util.showMessage("您由于连续3次没有被系统请出了房间！");
+            Util.showMessage("您由于连续3次没有操作被系统请出了房间！");
         }
     };
     PlayState.prototype.onKickPlayer = function (data, _this) {
@@ -1453,7 +1453,7 @@ var PlayState = (function () {
                     break;
                 }
             }
-            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + p.score + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + ((done && Main.currentRoom.state == 2) ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
+            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + p.score + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + ((done && Main.currentRoom.state == 1) ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
             jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
         for (var i = 0; i < this.spectators.length; i++) {
@@ -1645,9 +1645,11 @@ var PlayState = (function () {
         jQuery("#gamePage #blackcardtext").html(text);
     };
     PlayState.prototype.onWhiteCard = function (data, _this) {
+        _this.donePlayers = [];
         for (var i = 0; i < data.c.length; i++) {
             _this.handCards.push(Util.convertWhiteCardData(data.c[i]));
         }
+        _this.clearTableCards();
         _this.updateHandCardDisplay();
     };
     PlayState.prototype.clearHandCard = function () {
@@ -1737,6 +1739,7 @@ var PlayState = (function () {
         _this.updatePlayerList();
     };
     PlayState.prototype.onJudge = function (data, _this) {
+        _this.donePlayers = [];
         _this.startTimer(25000 + parseInt(data.bl) * 5000);
         _this.clearBadgesWithoutCzar();
         Main.currentRoom.state = 2;
@@ -1776,6 +1779,9 @@ var PlayState = (function () {
         jQuery("#gamePage #table .cards").mouseover(function (e) { MyEvent.call("czarpreview", jQuery(e.target).attr("cid")); });
         jQuery("#gamePage #table .cards").mouseout(function (e) { MyEvent.call("czarunpreview", jQuery(e.target).attr("cid")); });
     };
+    PlayState.prototype.clearTableCards = function () {
+        jQuery("#gamePage #table .cards").empty();
+    };
     PlayState.prototype.onLetwin = function (data, _this) {
         if (Main.currentRoom.state != 2)
             return;
@@ -1788,9 +1794,9 @@ var PlayState = (function () {
     };
     PlayState.prototype.onStopped = function (data, _this) {
         Main.currentRoom.state = 0;
+        _this.czar = 0;
         _this.clearGamePage();
         _this.updatePlayerList();
-        _this.czar = 0;
     };
     PlayState.prototype.onWinner = function (data, _this) {
         Main.currentRoom.state = 3;
@@ -1818,6 +1824,7 @@ var PlayState = (function () {
             vocalText = vocalText.replace("%b", texts[i]);
         }
         Main.sayByVoiceCard(vocalText);
+        _this.startTimer(8000);
     };
     PlayState.needTick = 0;
     PlayState.currentTick = 0;
