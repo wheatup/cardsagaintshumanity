@@ -522,6 +522,46 @@ public class TaskHandler implements Runnable {
 			
 			room.getRound().playerPick(player, cards);
 		}
+		//接受让玩家获胜消息
+		else if(key.equals("letwin")){
+			if(player.getRoomNumber() <= 0){
+				return;
+			}
+			
+			Room room = Server.gameWorld.getLobby().getRoom(player.getRoomNumber());
+			if(room == null){
+				return;
+			}
+			
+			if(room.getRound() == null || room.getRound().getState() != Round.STATE_JUDGING){
+				return;
+			}
+			
+			if(room.getRound().getCzar() != player){
+				return;
+			}
+			
+			int round = 0;
+			int[] cids = {0};
+			String cidsraw = "";
+			
+			try{
+				round = Integer.parseInt((String)map.get("r"));
+				cidsraw = (String)map.get("cid");
+				String[] cidsraws = cidsraw.split(",");
+				cids = new int[cidsraws.length];
+				for(int i = 0; i < cids.length; i++){
+					cids[i] = Integer.parseInt(cidsraws[i]);
+				}
+			}catch(Exception e){e.printStackTrace();}
+			
+			if(room.getRound().getId() != round){
+				player.sendMessage(Json2Map.BuildTextMessage("操作已失效！"));
+				return;
+			}
+			
+			room.getRound().letwin(cids, cidsraw);
+		}
 	}
 	
 	public void addTask(Task task){

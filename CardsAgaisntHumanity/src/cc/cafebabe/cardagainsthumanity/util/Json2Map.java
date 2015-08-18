@@ -331,5 +331,41 @@ public class Json2Map
 		return map;
 	}
 	
+	public static Map<String, Object> buildJudgingInfo(int combo, Set<WhiteCard[]> cards){
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("t", "judge");
+		int i = 0;
+		for(WhiteCard[] wcs : cards){
+			HashMapArray hma = new HashMapArray();
+			for(WhiteCard wc : wcs){
+				Map<String, Object> ccc = new HashMap<String, Object>();
+				if(wc == null){
+					ccc.put("text", "???");
+					ccc.put("au", "???");
+					ccc.put("cp", 0);
+					ccc.put("id", 0);
+				}else{
+					ccc.put("text", wc.getText());
+					ccc.put("au", wc.getPname());
+					ccc.put("cp", wc.getPackid());
+					ccc.put("id", wc.getCid());
+				}
+				hma.addMap(ccc);
+			}
+			map.put("c" + i, hma);
+			i++;
+		}
+		map.put("bl", combo);
+		return map;
+	}
 	
+	public static Map<String, Object> buildWinnerInfo(String cidsraw, long pid, int combo, int add){
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("t", "winner");
+		map.put("cid", cidsraw);
+		map.put("pid", pid);
+		map.put("combo", combo);
+		map.put("add", add);
+		return map;
+	}
 }

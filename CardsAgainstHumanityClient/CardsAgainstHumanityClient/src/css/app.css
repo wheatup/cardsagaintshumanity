@@ -73,6 +73,7 @@
 
 #gamePage #leftArea #blackCardArea{width: 240px; height:144px;}
 #gamePage #leftArea #blackCardArea #blackCard{width: 236px; height:130px; background-color:#111; padding:5px; border:solid 2px #555; margin-top:10px;  font-size:18px; word-break:break-all;}
+#gamePage #leftArea #blackCardArea img{max-width:100%; height:auto;}
 #gamePage #leftArea #blackCardArea #blackCard .blank{display:inline; word-break:break-all;}
 #gamePage #leftArea #blackCardArea #blackCard #info{position:absolute; float:left; top:178px; color:#666; font-size:12px;}
 #gamePage #leftArea #blackCardArea #hostSettings #startGame{margin-top:5px; width:236px; }
@@ -113,7 +114,10 @@
 #gamePage #tableArea #table #pack2 #whitecard:first-child{margin-left:0px;}
 #gamePage #tableArea #table #pack1 #whitecard{width:232px;}
 
-#gamePage #tableArea #table .cards:hover #whitecard{background-color:#555; color:white; cursor:pointer; border:solid 2px #ddd;}
+.winnercard {background-color:#555; color:white;}
+.winner {background-color:white; color:#555;}
+
+#gamePage #tableArea #table .cards:hover #whitecard{cursor:pointer; border:solid 2px #ddd;}
 
 #gamePage #handArea{float:left; width:230px; height:620px; padding:10px; margin-left:10px;}
 #gamePage #handArea #handTitle{width:246px; height:30px; background-color:#888; border:solid 2px #555; text-align:center; line-height:30px; font-weight:bold;}
@@ -121,7 +125,7 @@
 #gamePage #handArea #hand .cards{width:236px; height:51.5px; overflow:hidden; margin:5px;}
 #gamePage #handArea #hand .cards img{max-height:100%; width:auto;}
 #gamePage #handArea #hand .cards #whitecard{float:left; height:47.5px; width:232px; color:#111; background-color:#eee; border:solid 2px #555; overflow:hidden; text-align:center;}
-#gamePage #handArea #hand .cards:hover #whitecard{background-color:#555; color:white; cursor:pointer; border:solid 2px #ddd;}
+#gamePage #handArea #hand .cards:hover #whitecard{cursor:pointer; border:solid 2px #ddd;}
 
 #gamePage #rightArea{float:left; width:218px; height:620px; padding:10px; margin-left:10px;}
 #gamePage #rightArea #playerArea{width:208px; height:442px; background-color:#888; border:solid 2px #555; text-align:center; padding:5px;}

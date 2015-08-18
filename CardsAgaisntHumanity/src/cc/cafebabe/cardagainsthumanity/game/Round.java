@@ -10,6 +10,7 @@ import java.util.Set;
 import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
+import cc.cafebabe.cardagainsthumanity.service.CardsService;
 import cc.cafebabe.cardagainsthumanity.util.Json2Map;
 
 public class Round extends PlayerContainer{
@@ -19,7 +20,7 @@ public class Round extends PlayerContainer{
 	public static final int STATE_RANKING = 3;
 	
 	private boolean running = false;
-	private int id = 1;
+	private int id = 0;
 	private BlackCard blackCard;
 	private int state;
 	private Deck deck;
@@ -27,8 +28,9 @@ public class Round extends PlayerContainer{
 	private Map<Player, Set<WhiteCard>> handCards;
 	private Map<Integer, Player> cardMap;
 	private List<Player> orderedPlayer;
-	private Set<int[]> cardsCombo;
+	private Set<WhiteCard[]> cardsCombo;
 	private int czarIndex = 0;
+	private int needCards = 0;
 	private Player czar;
 	
 	public Player getCzar() {
@@ -50,7 +52,7 @@ public class Round extends PlayerContainer{
 		this.room = room;
 		handCards = new HashMap<Player, Set<WhiteCard>>();
 		orderedPlayer = new ArrayList<Player>();
-		cardsCombo = new HashSet<int[]>();
+		cardsCombo = new HashSet<WhiteCard[]>();
 		deck = new Deck(packids);
 		id = 1;
 		cardMap = new HashMap<Integer, Player>();
@@ -70,18 +72,21 @@ public class Round extends PlayerContainer{
 		orderedPlayer.remove(player);
 		removePlayer(player);
 		handCards.remove(player);
+		if(czar == player && (state == STATE_JUDGING || state == STATE_PICKING)){
+			nextRound();
+			return;
+		}
+		
+		if(!cardMap.containsValue(player) && state == STATE_PICKING){
+			needCards--;
+			if(needCards == 1){
+				judging();
+			}
+		}
 	}
 	
 	public void start(){
-		cardMap.clear();
-		cardsCombo.clear();
-		state = STATE_PICKING;
-		running = true;
-		for(Player p : room.getPlayers().values()){
-			addOnePlayer(p);
-		}
-		this.blackCard = deck.getBlackCard();
-		picking();
+		nextRound();
 	}
 	
 	public void fillPlayerCards(){
@@ -106,6 +111,12 @@ public class Round extends PlayerContainer{
 				addOnePlayer(p);
 			}
 		}
+		if(players.size() < 3){
+			stop();
+			return;
+		}
+		needCards = players.size();
+		System.out.println(needCards);
 		this.blackCard = deck.getBlackCard();
 		picking();
 	}
@@ -125,13 +136,74 @@ public class Round extends PlayerContainer{
 		czarIndex++;
 	}
 	
+	public void judging(){
+		state = STATE_JUDGING;
+		if(cardsCombo.size() > 0)
+			room.broadcastMessage(Json2Map.buildJudgingInfo(blackCard.getBlankCount(), cardsCombo));
+		else
+			nextRound();
+	}
+	
+	public void stop(){
+		room.broadcastMessage(Json2Map.BuildFlagMessage("stop"));
+		running = false;
+		this.state = STATE_IDLE;
+	}
+	
 	public void playerPick(Player player, int[] ids){
-		cardsCombo.add(ids);
+		WhiteCard[] cards = new WhiteCard[ids.length];
+		for(int i = 0; i < ids.length; i++){
+			cards[i] = deck.getWhiteCardById(ids[i]);
+		}
+		cardsCombo.add(cards);
 		for(int id : ids){
 			cardMap.put(id, player);
 		}
 		room.broadcastMessage(Json2Map.BuildKVMessage("picked", player.getPid()));
+		needCards--;
+		if(needCards == 1){
+			judging();
+		}
 	}
+	
+	public void letwin(int[] cids, String cidsraw){
+		state = STATE_RANKING;
+		for(int in : cids){
+			CardsService.pickCard(in);
+		}
+		if(czar != null){
+			czar.getGameData().setFish(czar.getGameData().getFish()+1);
+			czar.getGameData().setExp(czar.getGameData().getExp()+1);
+			czar.saveGameData();
+			czar.sendMessage(Json2Map.buildMyInfo(czar));
+		}
+		
+		Player p = cardMap.get(cids[0]);
+		long pid = 0;
+		int combo = 1;
+		int add = 1;
+		if(p != null){
+			pid = p.getPid();
+			for(Player allp: players.values()){
+				if(allp != p && allp != czar){
+					p.getGameData().setCombo(0);
+				}
+			}
+			if(cardsCombo.size() >= 3){
+				p.getGameData().setCombo(p.getGameData().getCombo() + 1);
+				combo = p.getGameData().getCombo();
+				if(combo > 1)
+					add = (cardsCombo.size() - 4) + (combo-1) * 3;
+			}
+			
+			p.getGameData().setExp(p.getGameData().getExp() + add);
+			p.saveGameData();
+			p.sendMessage(Json2Map.buildMyInfo(p));
+		}
+		
+		room.broadcastMessage(Json2Map.buildWinnerInfo(cidsraw, pid, combo, add));
+	}
+	
 	
 	public void rushToJudge(){
 		

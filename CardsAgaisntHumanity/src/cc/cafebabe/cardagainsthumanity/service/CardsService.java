@@ -175,4 +175,8 @@ public class CardsService
 		}
 		return hma;
 	}
+	
+	public static void pickCard(long cid){
+		CardsDAO.pickCard(cid);
+	}
 }

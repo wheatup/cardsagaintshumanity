@@ -18,6 +18,15 @@ public class GameData
 	private int credit;
 	private int fish;
 	private int exp;
+	private int combo;
+	public int getCombo()
+	{
+		return combo;
+	}
+	public void setCombo(int combo)
+	{
+		this.combo = combo;
+	}
 	private Map<String, Object> datas;
 	@SuppressWarnings("unchecked")
 	public <T> T getExtData(String key){

@@ -78,4 +78,15 @@ public class Deck
 		whiteCardsPlayed.clear();
 		Collections.shuffle(whiteCards);
 	}
+	
+	public WhiteCard getWhiteCardById(long id){
+		WhiteCard wc = null;
+		for(WhiteCard c : whiteCardsPlayed){
+			if(c.getCid() == id){
+				wc = c;
+				break;
+			}
+		}
+		return wc;
+	}
 }

@@ -141,6 +141,22 @@ public class CardsDAO
 		}
 	}
 	
+	public static void pickCard(long cid){
+		synchronized(BaseDAO.cardsDB){
+			try
+			{
+				PreparedStatement prep = BaseDAO.cardsDB.prepareStatement("update card set pick = pick + 1 where cid = ?;");
+				prep.setLong(1, cid);
+			    prep.executeUpdate();
+			    prep.close();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	public static void setCardState(long cid, int state){
 		synchronized(BaseDAO.cardsDB){
 			try

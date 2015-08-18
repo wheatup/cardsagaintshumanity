@@ -128,6 +128,7 @@ public class Room extends PlayerContainer{
 	}
 	
 	public void removePlayerFromRoom(Player player){
+		System.out.println("remove");
 		removePlayer(player);
 		broadcastMessage(Json2Map.buildPlayerLeaveInfo(player.getPid()));
 		orderedPlayer.remove(player);
@@ -140,10 +141,6 @@ public class Room extends PlayerContainer{
 				setHost(orderedPlayer.get(0));
 			else
 				setHost(null);
-		}
-		
-		if(getRound() != null){
-			getRound().removeOnePlayer(player);
 		}
 		
 		if(this.players.size() == 0 && this.spectateArea.players.size() == 0){
