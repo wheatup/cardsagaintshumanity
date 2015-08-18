@@ -18,7 +18,7 @@ public class Room extends PlayerContainer{
 	private List<Player> orderedPlayer;
 	
 	private int id;
-	private int gameid = 0;
+	private static int gameid = 0;
 	private String name;
 	private String password;
 	private Round round;

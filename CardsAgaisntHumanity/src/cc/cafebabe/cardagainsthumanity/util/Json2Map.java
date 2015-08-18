@@ -206,6 +206,7 @@ public class Json2Map
 	
 	public static Map<String, Object> BuildServerInfo(){
 		Map<String, Object> map = BuildMapByType(MessageType.SERVERINFO);
+		map.put("version", Server.version);
 		map.put("players", Server.gameWorld.getPlayerCount());
 		map.put("max", GameWorld.MAX_PLAYER);
 		return map;
@@ -366,6 +367,13 @@ public class Json2Map
 		map.put("pid", pid);
 		map.put("combo", combo);
 		map.put("add", add);
+		return map;
+	}
+	
+	public static Map<String, Object> buildWinnerBroadCast(String text){
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("t", "br");
+		map.put("text", text);
 		return map;
 	}
 }

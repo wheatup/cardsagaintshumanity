@@ -108,7 +108,7 @@ class Player {
 
     public getLevel(): number {
         var lvl: number = 1;
-        while (this.getLevelExp(lvl) < this.exp) {
+        while (this.getLevelExp(lvl) <= this.exp) {
             lvl++;
         }
         return lvl;
@@ -125,7 +125,7 @@ class Player {
     public getLevelExp(lvl: number): number {
         if (lvl == 0)
             return 0;
-        return 5 + Math.round(Math.pow(lvl * 2.4, 1.7));
+        return 1 + Math.round(Math.pow(lvl * 2.4, 1.7));
     }
 }
 
@@ -248,6 +248,22 @@ class Util {
         return text;
     }
 
+	public static convertChatWithAttr(text: string, attr: string, val:string): string {
+        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '"/>');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '>$1</a>');
+        return text;
+    }
+
+	public static convertChatWith2Attr(text: string, attr: string, val: string, attr2:string, val2:string): string {
+        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '" />');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '">$1</a>');
+        return text;
+    }
+
     public static showMessage(text: string): void {
         MyEvent.call(Signal.TEXT, { text: text, pid: 0 });
     }
@@ -324,6 +340,11 @@ class Server {
 	* 发送信息至服务器事件
 	*/
     send(data, isVital, isUser): void {
+		if (localStorage["name"] != Main.myName && !GameSettings.AllowMulti) {
+			location.reload(true);
+			return;
+		}
+
         if ((this.antiFlush || Main.nextSendTime > new Date().getTime()) && isUser) {
 			MyEvent.call("text", { pid: 0, text: "您操作太快了！" });
 			return;
@@ -496,6 +517,8 @@ class Main {
     public static loginState: LoginState;
     public static lobbyState: LobbyState;
 	public static playState: PlayState;
+	public static version: string = "1";
+	public static myName: string = "";
 
 	private static freeze: boolean = false;
 	public static isFrozen(): boolean {
@@ -772,6 +795,11 @@ class LoginState {
 	}
 
     public onCanLogin(data: any, thisObject: LoginState): void {
+		if (data.version != Main.version) {
+			LoginState.setLoginTip("客户端版本过旧，请刷新！");
+			return
+		}
+
 		Main.state = State.CONNECTED;
 		var par = parseInt(data.players) / parseInt(data.max) * 100;
 		jQuery("#onlineBar").css("width", par + "%");
@@ -811,7 +839,10 @@ class LoginState {
 			return;
 		}
 
-		thisObject.sendLogin(username, password );
+		Main.myName = username;
+		localStorage["name"] = username;
+		thisObject.sendLogin(username, password);
+
 	}
 
 	public sendLogin(username: string, password: string): void {
@@ -907,6 +938,7 @@ class LobbyState {
         MyEvent.bind(Signal.OnClickSendSug, this.OnClickSendSug, this);
         MyEvent.bind(Signal.OnSendCardCallback, this.onCardSended, this);
         MyEvent.bind("sri", this.onRoomChange, this);
+		MyEvent.bind("br", this.onBroadcast, this);
 	}
 
 	private unbindEvents(): void {
@@ -923,6 +955,7 @@ class LobbyState {
         MyEvent.unbindAll(Signal.OnClickSendSug, this.OnClickSendSug);
         MyEvent.unbindAll(Signal.OnSendCardCallback, this.onCardSended);
         MyEvent.unbindAll("sri", this.onRoomChange);
+		MyEvent.unbind("br", this.onBroadcast);
     }
 
     public onRoomChange(data: any, _this: LobbyState) {
@@ -1027,6 +1060,11 @@ class LobbyState {
 			jQuery("#chatArea #messages").append('<div id="entry"><label id="name">[' + speakerName + ']</label><label id="content">' + text + '</label></div>');
 
         jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+	}
+
+	public onBroadcast(data: any, _this: LobbyState): void {
+		jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
+		jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
 	}
 
 	public clearChatArea(): void {
@@ -1322,6 +1360,7 @@ class PlayState{
 		MyEvent.bind("stop", this.onStopped, this);
 		MyEvent.bind("letwin", this.onLetwin, this);
 		MyEvent.bind("winner", this.onWinner, this);
+		MyEvent.bind("br", this.onBroadcast, this);
     }
 
     private unbindEvents(): void {
@@ -1351,6 +1390,7 @@ class PlayState{
 		MyEvent.unbind("picked", this.onPlayerPicked);
 		MyEvent.unbind("judge", this.onJudge);
 		MyEvent.unbind("stop", this.onStopped);
+		MyEvent.unbind("br", this.onBroadcast);
 		MyEvent.unbind("letwin", this.onLetwin);
 		MyEvent.unbind("winner", this.onWinner);
     }
@@ -1553,6 +1593,7 @@ class PlayState{
 
     public updateMyInfo(data: any): void {
         Main.me = Util.convertPlayerData(data.info[0]);
+		
         this.updateMyInfoDisplay();
     }
 
@@ -1707,6 +1748,11 @@ class PlayState{
             Main.sayByVoicePlayer(text);
     }
 
+	public onBroadcast(data: any, _this: LobbyState): void {
+		jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
+		jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+	}
+
     public onSendText(data: any, _this: PlayState): void {
         var $text: any = jQuery("#gamePage #inputArea #inputbox")[0];
         var text: string = $text.value.trim();
@@ -1772,6 +1818,7 @@ class PlayState{
     }
 
 	public onBlackCard(data: any, _this: PlayState): void {
+		window.focus();
 		Main.currentRoom.state = 1;
 		_this.letwined = false;
 		_this.hideGameStartButton();
@@ -1881,10 +1928,13 @@ class PlayState{
 		jQuery("#gamePage #hand").empty();
 		for (var i: number = 0; i < this.handCards.length; i++) {
 			var card: WhiteCard = this.handCards[i];
-			jQuery("#gamePage #hand").append('<div title="卡牌包:' + card.packName + ' 作者:' + card.author + '" class="cards" cid="' + card.cid + '"><div id= "whitecard" cid="' + card.cid + '">' + Util.convertChat(card.text) + '</div></div>');
+			jQuery("#gamePage #hand").append('<div title="卡牌包:' + card.packName + ' 作者:' + card.author + '" class="cards" cid="' + card.cid + '"><div id= "whitecard" cid="' + card.cid + '">' + Util.convertChatWithAttr(card.text, "cid", card.cid + '') + '</div></div>');
 		}
 		jQuery("#gamePage #hand .cards").tapOrClick(function (e) { MyEvent.call("pickcard", jQuery(e.target).attr("cid")); });
-		jQuery("#gamePage #hand .cards").mouseover(function (e) { MyEvent.call("preview", jQuery(e.target).html()); });
+		jQuery("#gamePage #hand .cards").mouseover(function (e) {
+			var text = jQuery("#gamePage #hand .cards #whitecard[cid=" + jQuery(e.target).attr("cid") + "]").html();
+			MyEvent.call("preview", text);
+		});
 		jQuery("#gamePage #hand .cards").mouseout(function (e) { MyEvent.call("unpreview", jQuery(e.target).html()); });
 	}
 	//currentBlackCardBlanks
@@ -1936,14 +1986,14 @@ class PlayState{
 		jQuery("#gamePage .blank[id=bc" + (_this.selectedCards.length + 1) + "]").removeClass("preview");
 	}
 
-	public onCzarPreview(data: string, _this: PlayState): void {
+	public onCzarPreview(data: any, _this: PlayState): void {
 		if (Main.currentRoom.state != 2) return;
 		if (!_this.isMeCzar) return;
 
-		var ids: string[] = data.split(",");
+		var ids: string[] = data.cid.split(",");
 		var texts: string[] = [];
 		for (var i: number = 0; i < ids.length; i++) {
-			texts[i] = jQuery("#gamePage #table #whitecard[cnt=" + i + "]").html();
+			texts[i] = jQuery("#gamePage #table .cards[cids=" + data.cids + "] #whitecard[cnt=" + i + "]").html();
 			jQuery("#gamePage .blank[id=bc" + (i + 1) + "]").html(texts[i]);
 			jQuery("#gamePage .blank[id=bc" + (i + 1) + "]").addClass("preview");
 		}
@@ -1964,6 +2014,7 @@ class PlayState{
 	}
 
 	public onJudge(data: any, _this: PlayState): void {
+		window.focus();
 		_this.donePlayers = [];
 		_this.startTimer(25000 + parseInt(data.bl) * 5000);
 		_this.clearBadgesWithoutCzar();
@@ -1972,12 +2023,10 @@ class PlayState{
 		ele.empty();
 		var final: string = "";
 		for (var i: number = 0; i < 7; i++) {
-			console.log(i + ".");
 			var cards: any = data["c" + i];
 			if (cards == null || cards == undefined) {
 				break;
 			}
-			console.log(i);
 			var cid: string = "";
 			for (var cnt = 0; cnt < parseInt(data.bl); cnt++) {
 				if (cnt == data.bl - 1)
@@ -1993,7 +2042,7 @@ class PlayState{
 
 			final = final + '<div id="pack' + data.bl + '" class="cards" cid="' + cid + '" cids="' + cids + '">';
 			for (var j: number = 0; j < cards.length; j++) {
-				final = final + '<div title="卡牌包：' + Main.getPackName(cards[j].cp) + ' 作者：' + cards[j].au + '" id="whitecard" cid="' + cid + '" cnt="' + j + '" cids="' + cids + '">' + Util.convertChat(cards[j].text) + '</div>';
+				final = final + '<div title="卡牌包：' + Main.getPackName(cards[j].cp) + ' 作者：' + cards[j].au + '" id="whitecard" cid="' + cid + '" cnt="' + j + '" cids="' + cids + '">' + Util.convertChatWith2Attr(cards[j].text, "cid", cid, "cids", cids) + '</div>';
 			}
 			final = final + '</div>';
 		}
@@ -2004,9 +2053,12 @@ class PlayState{
 			jQuery("#gamePage .blank[id=bc" + (i + 1) + "]").removeClass("preview");
 		}
 
-		jQuery("#gamePage #table .cards").tapOrClick(function (e) { MyEvent.call("letwin", jQuery(e.target).attr("cid")) });
-		jQuery("#gamePage #table .cards").mouseover(function (e) { MyEvent.call("czarpreview", jQuery(e.target).attr("cid")) });
-		jQuery("#gamePage #table .cards").mouseout(function (e) { MyEvent.call("czarunpreview", jQuery(e.target).attr("cid")) });
+		jQuery("#gamePage #table .cards #whitecard").tapOrClick(function (e) {
+			var text = jQuery("#gamePage #table .cards[cids=" + jQuery(e.target).attr("cids") + "]").html();
+			MyEvent.call("letwin", jQuery(e.target).attr("cid"))
+		});
+		jQuery("#gamePage #table .cards").mouseover(function (e) { MyEvent.call("czarpreview", { cids: jQuery(e.target).attr("cids"), cid: jQuery(e.target).attr("cid")}) });
+		jQuery("#gamePage #table .cards").mouseout(function (e) { MyEvent.call("czarunpreview") });
 	}
 
 	public clearTableCards(): void {
@@ -2029,6 +2081,7 @@ class PlayState{
 	}
 
 	public onWinner(data: any, _this: PlayState): void {
+		window.focus();
 		Main.currentRoom.state = 3;
 		var cids1:string = "";
 		var cids: string[] = data.cid.split(",");
@@ -2048,10 +2101,12 @@ class PlayState{
 		else
 			Util.showMessage(_this.getPlayerByPid(data.pid).name + " " + data.combo + "连胜，分数+" + data.add);
 
+		_this.getPlayerByPid(data.pid).exp = parseInt(_this.getPlayerByPid(data.pid).exp + '') + parseInt(data.add);
+
 		var vocalText = _this.currentBlackCardText;
 		var texts: string[] = [];
 		for (var i: number = 0; i < cids.length; i++) {
-			texts[i] = jQuery("#gamePage #table #whitecard[cnt=" + i + "]").html();
+			texts[i] = jQuery("#gamePage #table .cards[cids=" + (data.cid.replace(",", "").replace(",", "")) + "] #whitecard[cnt=" + i + "]").html();
 			jQuery("#gamePage .blank[id=bc" + (i + 1) + "]").html(texts[i]);
 			jQuery("#gamePage .blank[id=bc" + (i + 1) + "]").addClass("preview");
 			vocalText = vocalText.replace("%b", texts[i]);

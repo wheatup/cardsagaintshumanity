@@ -19,6 +19,7 @@ public class Server
 	public static TaskHandler handler;
 	private static Thread handlerThread;
 	public static GameWorld gameWorld;
+	public static String version = "1";
 	static
 	{
 		gameWorld = new GameWorld();

@@ -34,7 +34,9 @@ public class TaskHandler implements Runnable {
 		this.running = true;
 		while(running){
 			while(!tasks.isEmpty()){
+				try{
 				handleTask(tasks.poll());
+				}catch(Exception e){e.printStackTrace();}
 			}
 			try {
 				Thread.sleep(1);

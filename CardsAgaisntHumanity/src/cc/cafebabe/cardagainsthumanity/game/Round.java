@@ -191,6 +191,8 @@ public class Round extends PlayerContainer{
 	}
 	
 	public void letwin(int[] cids, String cidsraw){
+		setTimer(8000, "pick", this.room.getId(), id, gameid);
+		
 		state = STATE_RANKING;
 		for(int in : cids){
 			CardsService.pickCard(in);
@@ -211,7 +213,7 @@ public class Round extends PlayerContainer{
 			pid = p.getPid();
 			for(Player allp: players.values()){
 				if(allp != p && allp != czar){
-					p.getGameData().setCombo(0);
+					allp.getGameData().setCombo(0);
 				}
 			}
 			if(cardsCombo.size() >= 3){
@@ -226,8 +228,20 @@ public class Round extends PlayerContainer{
 			p.sendMessage(Json2Map.buildMyInfo(p));
 		}
 		
+		String blacktext = blackCard.getText();
+		String[] whitecardtexts = new String[blackCard.getBlankCount()];
+		try{
+			for(int i = 0; i < whitecardtexts.length; i++){
+				whitecardtexts[i] = "";
+				WhiteCard c = deck.getWhiteCardById(cids[i]);
+				blacktext = blacktext.replaceFirst("%b", "<span>" + c.getText() + "</span>");
+			}
+		}catch(Exception e){e.printStackTrace();}
+		if(p != null){
+			String ttt = room.getId() + "ºÅ·¿£º" + blacktext + ",»ñÊ¤Õß£º" + p.getName();
+			Server.gameWorld.broadcastMessage(Json2Map.buildWinnerBroadCast(ttt));
+		}
 		room.broadcastMessage(Json2Map.buildWinnerInfo(cidsraw, pid, combo, add));
-		setTimer(8000, "pick", this.room.getId(), id, gameid);
 	}
 	
 	
@@ -257,10 +271,6 @@ public class Round extends PlayerContainer{
 	}
 	
 	public void rushToRank(int r, int gid){
-		System.out.println(r + "," + gid);
-		System.out.println(this.id + "," +  this.gameid);
-		System.out.println(state);
-		System.out.println(running);
 		if(!running) return;
 		if(this.id != r || this.gameid != gid) return;
 		if(state >= STATE_RANKING) return;

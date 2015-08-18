@@ -50,6 +50,8 @@
 #lobbyPage #leftBottomArea #chatArea{float:right; width:432px; height:182px;}
 #lobbyPage #leftBottomArea #chatArea #messages{float:right; width:422px; height:138px; background-color:#888; border:solid 2px #555; overflow-x:hidden; overflow-y:scroll; padding:5px;}
 #lobbyPage #leftBottomArea #chatArea #messages #server{color:#444; font-weight:bold;}
+#lobbyPage #leftBottomArea #chatArea #messages #br{color:#333; font-weight:bold;}
+#lobbyPage #leftBottomArea #chatArea #messages #br span{color:#eee; font-weight:bold;}
 #lobbyPage #leftBottomArea #chatArea #messages #name{color:#ccc; font-weight:bold;}
 #lobbyPage #leftBottomArea #chatArea #messages #content{color:#fff;}
 #lobbyPage #leftBottomArea #chatArea #inputArea{float:right; width:432px; height:24px; background-color:#888; border:solid 2px #555; margin-top:6px;}
@@ -95,6 +97,8 @@
 #gamePage #leftArea #chatArea{width:250px; height:261px; margin-top:10px;}
 #gamePage #leftArea #chatArea #messages{width:236px; height:213px; background-color:#888; border:solid 2px #555; overflow-x:hidden; overflow-y:scroll; padding:5px;}
 #gamePage #leftArea #chatArea #messages #server{color:#444; font-weight:bold;}
+#gamePage #leftArea #chatArea #messages #br{color:#333; font-weight:bold;}
+#gamePage #leftArea #chatArea #messages #br span{color:#eee; font-weight:bold;}
 #gamePage #leftArea #chatArea #messages #name{color:#ccc; font-weight:bold;}
 #gamePage #leftArea #chatArea #messages #content{color:#fff;}
 #gamePage #leftArea #chatArea #messages #content img{max-width:100%; height:auto;}
@@ -147,10 +151,10 @@
 #gamePage #rightArea #settingsArea div{float:left; height:26px; line-height:26px; width:56px; margin-left:5px;}
 #gamePage #rightArea #settingsArea div:first-child{margin-left:0px;}
 
-#mask {display: none; z-index:999; position:fixed; float:left; left:0px; top:0px; height:0px; background-color:black; width:100%; height:100%; filter:alpha(Opacity=70);-moz-opacity:0.7;opacity: 0.7; }
+#mask {display: none; z-index:500; position:fixed; float:left; left:0px; top:0px; height:0px; background-color:black; width:100%; height:100%; filter:alpha(Opacity=70);-moz-opacity:0.7;opacity: 0.7; }
 .mask{-webkit-filter: blur(5px); -moz-filter: blur(5px); filter: blur(5px);}
 
-.settingsPage{display:none; position:absolute; z-index:10; background-color:#888; border:solid 2px #333; margin:auto; left:0px; top:0px; right:0px; bottom:0px; color:black;}
+.settingsPage{display:none; position:absolute; z-index:999; background-color:#888; border:solid 2px #333; margin:auto; left:0px; top:0px; right:0px; bottom:0px; color:black;}
 .settingsPage .title{height:40px; background-color:#333; color:white; text-align:center; font-weight:bold; line-height:40px; font-size:20px;}
 .settingsPage .closeButton{float:right; width:40px; height:40px; text-align:center; background-color:#555;}
 .settingsPage .closeButton:hover{background-color:#aaa; color:#111; cursor:pointer;}
@@ -189,3 +193,5 @@
 .preview {color:#fff; font-weight:bold; text-decoration:underline; margin-left:3px; margin-right:3px;}
 
 #czarmask {position:absolute; float:left; width:246px; height:572px; background-color:#000; margin-top:10px; line-height:572px; font-size:30px; color:#aaa; font-weight:bold; word-spacing:20px; text-align:center; border:solid 2px #555; filter:alpha(Opacity=70);-moz-opacity:0.7;opacity: 0.7;}
+
+#table .cover{float:left; position:relative; z-index:10;}
