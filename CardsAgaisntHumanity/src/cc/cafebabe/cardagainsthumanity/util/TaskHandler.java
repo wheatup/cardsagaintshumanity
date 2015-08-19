@@ -781,7 +781,7 @@ public class TaskHandler implements Runnable {
 						p.sendMessage(Json2Map.buildMyInfo(p));
 						player.sendMessage(Json2Map.BuildTextMessage("您已将 " + name + " 的经验值设置为:" + level));
 					}else{
-						player.sendMessage(Json2Map.BuildTextMessage("该玩家不在线！"));
+	     					player.sendMessage(Json2Map.BuildTextMessage("该玩家不在线！"));
 					}
 				}
 			}

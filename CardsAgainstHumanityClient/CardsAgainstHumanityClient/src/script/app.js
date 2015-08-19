@@ -199,39 +199,53 @@ var Util = (function () {
         return r;
     };
     Util.safeString = function (text) {
-        while (text.indexOf("\"") != -1) {
-            text = text.replace('\"', "&quot;");
-        }
-        while (text.indexOf("<") != -1) {
-            text = text.replace('<', "&lt;");
-        }
-        while (text.indexOf(">") != -1) {
-            text = text.replace('>', "&gt;");
-        }
-        while (text.indexOf("\\") != -1) {
-            text = text.replace('\\', "\\\\");
-        }
+        text = Util.replaceAll(text, '\"', "&quot;");
+        text = Util.replaceAll(text, '<', "&lt;");
+        text = Util.replaceAll(text, '>', "&gt;");
+        text = Util.replaceAll(text, "\\", "\\\\");
         return text;
     };
+    //public static convertChat(text: string): string {
+    //    if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+    //        text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" />');
+    //    else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
+    //        text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank">$1</a>');
+    //    return text;
+    //}
+    //public static convertChatWithAttr(text: string, attr: string, val:string): string {
+    //    if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+    //        text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '"/>');
+    //    else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
+    //        text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '>$1</a>');
+    //    return text;
+    //}
+    //public static convertChatWith2Attr(text: string, attr: string, val: string, attr2:string, val2:string): string {
+    //    if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+    //        text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '" />');
+    //    else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
+    //        text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '">$1</a>');
+    //    return text;
+    //}
     Util.convertChat = function (text) {
-        if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
-            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" />');
+        if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/)) {
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/g, '<img src="$1" />');
+        }
         else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
-            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank">$1</a>');
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/g, '<a href="$1" target="_blank">$1</a>');
         return text;
     };
     Util.convertChatWithAttr = function (text, attr, val) {
         if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
-            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '"/>');
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/g, '<img src="$1" ' + attr + '="' + val + '"/>');
         else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
-            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '>$1</a>');
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/g, '<a href="$1" target="_blank" ' + attr + '="' + val + '>$1</a>');
         return text;
     };
     Util.convertChatWith2Attr = function (text, attr, val, attr2, val2) {
         if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
-            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '" />');
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/g, '<img src="$1" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '" />');
         else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
-            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '">$1</a>');
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/g, '<a href="$1" target="_blank" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '">$1</a>');
         return text;
     };
     Util.showMessage = function (text) {
@@ -650,7 +664,7 @@ var Main = (function () {
         jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     };
     Main.isHost = false;
-    Main.version = "3";
+    Main.version = "4";
     Main.myName = "";
     Main.freeze = false;
     return Main;

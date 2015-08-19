@@ -19,7 +19,7 @@ public class Server
 	public static TaskHandler handler;
 	private static Thread handlerThread;
 	public static GameWorld gameWorld;
-	public static String version = "3";
+	public static String version = "4";
 	static
 	{
 		gameWorld = new GameWorld();
