@@ -1085,8 +1085,10 @@ class LobbyState {
 	}
 
 	public onBroadcast(data: any, _this: LobbyState): void {
-		jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
-		jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+		if (jQuery("#allowbroadcast")[0].checked) {
+			jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
+			jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+		}
 	}
 
 	public clearChatArea(): void {
@@ -1771,8 +1773,10 @@ class PlayState{
     }
 
 	public onBroadcast(data: any, _this: LobbyState): void {
-		jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
-		jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
+		if (jQuery("#allowbroadcast")[0].checked) {
+			jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
+			jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
+		}
 	}
 
     public onSendText(data: any, _this: PlayState): void {

@@ -954,8 +954,10 @@ var LobbyState = (function () {
         jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
     };
     LobbyState.prototype.onBroadcast = function (data, _this) {
-        jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
-        jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+        if (jQuery("#allowbroadcast")[0].checked) {
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
+            jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+        }
     };
     LobbyState.prototype.clearChatArea = function () {
         jQuery("#chatArea #messages").empty();
@@ -1557,8 +1559,10 @@ var PlayState = (function () {
             Main.sayByVoicePlayer(text);
     };
     PlayState.prototype.onBroadcast = function (data, _this) {
-        jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
-        jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
+        if (jQuery("#allowbroadcast")[0].checked) {
+            jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
+            jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
+        }
     };
     PlayState.prototype.onSendText = function (data, _this) {
         var $text = jQuery("#gamePage #inputArea #inputbox")[0];

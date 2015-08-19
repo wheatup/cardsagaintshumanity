@@ -15,7 +15,7 @@
 #loginPage .loginArea #submit {height:30px; line-height:30px;}
 #loginPage .loginArea table {text-align:right; margin:20px auto;}
 #loginPage .loginArea table #submit {height:30px;}
-#loginPage .loginArea #onlineBar {display:block; float:left; background-color:#333; width:0%; height:24px; text-align:center;}
+#loginPage .loginArea #onlineBar {display:block; float:left; background-color:#222; width:0%; height:24px; text-align:center;}
 #loginPage .loginArea #serverinfo {display:block; float:left; line-height:20px; border:solid 2px #aaa; position:absolute; z-index:1; width:150px; height:20px; text-align:center;}
 
 #lobbyPage #leftArea {float:left; width:700px; height:616px; margin:10px 0px 10px 10px;}
@@ -172,7 +172,7 @@
 #createroom #cardpacks div{display:inline-block;}
 #createroom #submit{width:200px;margin:0px auto; border:solid 2px #333;}
 
-#setroom{width:300px; height:410px;}
+#setroom{width:300px; height:350px;}
 #setroom .option{padding:10px; margin:10px;}
 #setroom .option input{margin-left:10px;}
 #setroom #cardpacks {margin-bottom:30px;}
@@ -195,3 +195,4 @@
 #czarmask {position:absolute; float:left; width:246px; height:572px; background-color:#000; margin-top:10px; line-height:572px; font-size:30px; color:#aaa; font-weight:bold; word-spacing:20px; text-align:center; border:solid 2px #555; filter:alpha(Opacity=70);-moz-opacity:0.7;opacity: 0.7;}
 
 #table .cover{float:left; position:relative; z-index:10;}
+#messages{word-break: break-all;}
