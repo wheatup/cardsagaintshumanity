@@ -50,6 +50,7 @@ public class Lobby extends PlayerContainer{
 	
 	public void sendPlayerInLobby(Player player){
 		addPlayer(player);
+		player.setContainer(this);
 		player.setRoomNumber(0);
 		player.sendMessage(Json2Map.buildLobbyInfo(this));
 		broadcastMessage(Json2Map.buildPlayerEnterInfo(player));

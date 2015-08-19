@@ -15,8 +15,6 @@ public class SpectateArea extends PlayerContainer{
 		this.room = room;
 	}
 
-
-
 	public void sendPlayerInSpectator(Player player){
 		addPlayer(player);
 	}

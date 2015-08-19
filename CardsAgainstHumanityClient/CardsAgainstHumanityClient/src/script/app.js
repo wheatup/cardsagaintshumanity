@@ -552,18 +552,22 @@ var Main = (function () {
         });
     };
     Main.sayByVoiceCard = function (text) {
-        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
-        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
-        var audio = document.getElementById("cardaudio");
-        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
-        audio.play();
+        if (jQuery("#cardvoicecheck")[0].checked) {
+            text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+            text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+            var audio = document.getElementById("cardaudio");
+            audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+            audio.play();
+        }
     };
     Main.sayByVoicePlayer = function (text) {
-        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
-        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
-        var audio = document.getElementById("playeraudio");
-        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
-        audio.play();
+        if (jQuery("#playervoicecheck")[0].checked) {
+            text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+            text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+            var audio = document.getElementById("playeraudio");
+            audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+            audio.play();
+        }
     };
     Main.OnClickCloseSettings = function (data, _this) {
         jQuery(".settingsPage").hide();
@@ -646,7 +650,7 @@ var Main = (function () {
         jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     };
     Main.isHost = false;
-    Main.version = "1";
+    Main.version = "3";
     Main.myName = "";
     Main.freeze = false;
     return Main;

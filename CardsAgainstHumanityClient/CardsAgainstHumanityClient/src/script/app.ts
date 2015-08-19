@@ -517,7 +517,7 @@ class Main {
     public static loginState: LoginState;
     public static lobbyState: LobbyState;
 	public static playState: PlayState;
-	public static version: string = "1";
+	public static version: string = "3";
 	public static myName: string = "";
 
 	private static freeze: boolean = false;
@@ -638,21 +638,26 @@ class Main {
     }
 
     public static sayByVoiceCard(text: string): void {
-        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
-        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+		if (jQuery("#cardvoicecheck")[0].checked) {
 
-        var audio: any = document.getElementById("cardaudio");
-        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
-        audio.play();
+			text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+			text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+
+			var audio: any = document.getElementById("cardaudio");
+			audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+			audio.play();
+		}
     }
 
     public static sayByVoicePlayer(text: string): void {
-        text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
-        text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
+		if (jQuery("#playervoicecheck")[0].checked) {
+			text = text.replace(new RegExp("(https?://[\w\.\d%-_/]+)"), "和谐");
+			text = text.replace(new RegExp("((<.*>.*<.*/*.*>)|(<.*/*.*>))"), "和谐");
 
-        var audio: any = document.getElementById("playeraudio");
-        audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
-        audio.play();
+			var audio: any = document.getElementById("playeraudio");
+			audio.src = 'http://tts.baidu.com/text2audio?lan=zh&pid=101&ie=UTF-8&text=' + encodeURI(text) + '&spd=6';
+			audio.play();
+		}
     }
 
     public static OnClickCloseSettings(data: any, _this: Main): void {

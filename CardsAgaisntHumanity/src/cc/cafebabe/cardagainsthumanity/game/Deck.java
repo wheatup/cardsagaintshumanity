@@ -87,6 +87,15 @@ public class Deck
 				break;
 			}
 		}
+		if(wc == null){
+			for(WhiteCard c : whiteCards){
+				if(c.getCid() == id){
+					wc = c;
+					break;
+				}
+			}
+		}
+		
 		return wc;
 	}
 }

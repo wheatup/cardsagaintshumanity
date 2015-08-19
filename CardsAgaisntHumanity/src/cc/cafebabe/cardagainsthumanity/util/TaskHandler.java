@@ -785,6 +785,17 @@ public class TaskHandler implements Runnable {
 					}
 				}
 			}
+		}else if("br".equals(command)){
+			if(player.getState() != 2)
+				player.sendMessage(Json2Map.BuildFlagMessage("nc"));
+			else{
+				if(texts.length != 2 || texts[1].length() == 0){
+					player.sendMessage(Json2Map.BuildTextMessage("用法：/br 公告"));
+				}else{
+					String text = texts[1];
+					Server.gameWorld.broadcastMessage(Json2Map.buildWinnerBroadCast(text));
+				}
+			}
 		}
 		
 		

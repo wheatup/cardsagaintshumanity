@@ -72,7 +72,7 @@ public class Room extends PlayerContainer{
 	
 	public void broadcastMessage(Map<String , Object> message){
 		super.broadcastMessage(message);
-		spectateArea.broadcastMessage(message);
+		//spectateArea.broadcastMessage(message);
 	}
 	
 	public void broadcastMessageExceptSomeone(Map<String, Object> message, Player player){
@@ -102,6 +102,7 @@ public class Room extends PlayerContainer{
 	 */
 	public int sendPlayerInRoom(Player player){
 		if(players.size() < MAX_PLAYER){
+			player.setContainer(this);
 			addPlayer(player);
 			this.orderedPlayer.add(player);
 			player.sendMessage(Json2Map.buildRoomInfo(this));
@@ -113,6 +114,7 @@ public class Room extends PlayerContainer{
 			Server.gameWorld.getLobby().broadcastMessage(buildRoomShortInfo());
 			return 0;
 		} else if(spectateArea.players.size() < MAX_SPECTATOR){
+			player.setContainer(this);
 			spectateArea.addPlayer(player);
 			player.sendMessage(Json2Map.buildRoomInfo(this));
 			player.setRoomNumber(id);
@@ -182,6 +184,7 @@ public class Room extends PlayerContainer{
 					else
 						setHost(null);
 				}
+				player.setContainer(this);
 			}
 		}
 		
