@@ -2,7 +2,7 @@
 declare var returnCitySN;
 
 class GameSettings {
-    public static Server: string = "ws://localhost:4849/CardsAgaisntHumanity/server";
+    public static Server: string = "ws://cafebabe.cc:4849/CardsAgaisntHumanity/server";
     public static AllowMulti: boolean = true;
     public static debugMode: boolean = true;
 
@@ -241,26 +241,26 @@ class Util {
     }
 
     public static convertChat(text: string): string {
-        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
-            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" />');
-        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
-            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank">$1</a>');
+        if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" />');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank">$1</a>');
         return text;
     }
 
 	public static convertChatWithAttr(text: string, attr: string, val:string): string {
-        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
-            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '"/>');
-        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
-            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '>$1</a>');
+        if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '"/>');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '>$1</a>');
         return text;
     }
 
 	public static convertChatWith2Attr(text: string, attr: string, val: string, attr2:string, val2:string): string {
-        if (text.match(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
-            text = text.replace(/(https?:\/\/[\w\d%-_ /]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '" />');
-        else if (text.match(/(https?:\/\/[\w\.\d%-_ /]+)/))
-            text = text.replace(/(https?:\/\/[\w\d%-_ /]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '">$1</a>');
+        if (text.match(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/))
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]*\.((jpg)|(png)|(bmp)|(gif)|(jpeg)))/, '<img src="$1" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '" />');
+        else if (text.match(/(https?:\/\/[\w\.\d%-_:/]+)/))
+            text = text.replace(/(https?:\/\/[\w\d%-_:/]+)/, '<a href="$1" target="_blank" ' + attr + '="' + val + '" ' + attr2 + '="' + val2 + '">$1</a>');
         return text;
     }
 
@@ -1755,7 +1755,7 @@ class PlayState{
 
 	public onBroadcast(data: any, _this: LobbyState): void {
 		jQuery("#chatArea #messages").append('<div id="entry"><label id="br">[广播]' + Util.convertChat(data.text) + '</label></div>');
-		jQuery("#chatArea #messages")[0].scrollTop = jQuery("#chatArea #messages")[0].scrollHeight;
+		jQuery("#chatArea #messages")[1].scrollTop = jQuery("#chatArea #messages")[1].scrollHeight;
 	}
 
     public onSendText(data: any, _this: PlayState): void {
