@@ -1491,7 +1491,7 @@ var PlayState = (function () {
                     break;
                 }
             }
-            ele.append('<div class="player" pid="' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + p.score + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + ((done && Main.currentRoom.state == 1) ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
+            ele.append('<div class="player" title="pid:' + p.pid + '" pid="' + p.pid + '"><div id= "name" pid="' + p.pid + '">' + p.name + '</div><div id= "level" pid="' + p.pid + '">Lv.' + p.getLevel() + '</div><div id= "score" pid="' + p.pid + '">' + p.score + '</div>' + (this.czar == p.pid ? '<div id="title" class="czar" pid="' + p.pid + '">裁判</div>' : '') + ((done && Main.currentRoom.state == 1) ? '<div id="title" class="czar" pid="' + p.pid + '">完成</div>' : '') + '</div>');
             jQuery("#gamePage #playerArea .player[pid=" + p.pid + "]").tapOrClick(function (e) { MyEvent.call(Signal.KickPlayer, jQuery(e.target).attr("pid")); });
         }
         for (var i = 0; i < this.spectators.length; i++) {
