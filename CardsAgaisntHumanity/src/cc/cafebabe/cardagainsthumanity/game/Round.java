@@ -141,7 +141,7 @@ public class Round extends PlayerContainer{
 			e.printStackTrace();
 		}
 		czarIndex++;
-		setTimer(25000 + blackCard.getBlankCount() * 5000, "judge", this.room.getId(), id, gameid);
+		setTimer(20000 + blackCard.getBlankCount() * 5000, "judge", this.room.getId(), id, gameid);
 	}
 	
 	public void judging(){

@@ -3,22 +3,27 @@
 <head>
     <meta charset="utf-8" />
     <title>反人类卡牌游戏</title>
-    <link rel="stylesheet" href="src/css/app.css" type="text/css" />
+    <meta name=”apple-mobile-web-app-capable” content=”yes” />
+	<meta name=”apple-mobile-web-app-status-bar-style” content=black” />
+	<meta content="telephone=no" name="format-detection" />
+	<meta content="email=no" name="format-detection" />
+	
+	<link rel="stylesheet" href="src/css/app.css" type="text/css" />
     <script src="http://pv.sohu.com/cityjson?ie=utf-8"></script>
     <script src="src/script/lib/jquery-2.1.1.min.js"></script>
     <script src="src/script/lib/touch.js"></script>
     <script src="src/script/app.js"></script>
 </head>
-<body oncontextmenu='return false'>
+<body>
     <audio id="cardaudio"></audio>
     <audio id="playeraudio"></audio>
-    <div id="wrapper" ondragstart='return false' onselectstart='return false' onselect='return false'>
+    <div id="wrapper">
         <div id="mask"></div>
         <div class="page" id="loginPage">
             <div class="title">
                 <div class="titleText">反人类卡牌游戏</div>
                 <div class="titleSubtext">Cards Against Humanity</div>
-                <div class="titleSubtext">- 重生 : ver alpha0.1 -</div>
+                <div class="titleSubtext">- 重生 : ver beta 1.0 -</div>
                 <div class="info">
                     <div class="infocardwhite">游戏分为黑卡与白卡，黑卡包含一段缺少1-3个词语的句子，白卡包含一条短语。</div>
                     <div class="infocard">每轮游戏依次选择一名玩家作为裁判，玩家手中有10张白卡，用于回答黑卡所提出的问题，所有玩家选择完卡牌之后亮出自己的白卡。</div>

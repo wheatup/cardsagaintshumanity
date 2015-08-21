@@ -2,8 +2,10 @@ package cc.cafebabe.cardagainsthumanity.game;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import cc.cafebabe.cardagainsthumanity.entities.Player;
 import cc.cafebabe.cardagainsthumanity.server.Server;
@@ -101,6 +103,17 @@ public class Room extends PlayerContainer{
 	 * @return 0:进入玩家 1:进入旁观 2:房间人满
 	 */
 	public int sendPlayerInRoom(Player player){
+		Set<Player> pls = new HashSet<Player>();
+		for(Player p: orderedPlayer){
+			if(!players.containsValue(p)){
+				pls.add(p);
+			}
+		}
+		for(Player p: pls){
+			orderedPlayer.remove(p);
+		}
+		
+		
 		if(players.size() < MAX_PLAYER){
 			player.setContainer(this);
 			addPlayer(player);

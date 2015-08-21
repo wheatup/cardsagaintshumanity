@@ -2,9 +2,11 @@ package cc.cafebabe.cardagainsthumanity.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.websocket.Session;
@@ -812,6 +814,23 @@ public class TaskHandler implements Runnable {
 		}
 		
 		String type = (String) map.get("t");
+		
+		if(type.equals("check")){
+			Set<Player> players = new HashSet<Player>();
+			for(Player p : Server.gameWorld.getPlayers().values()){
+				if(!p.getSession().isOpen()){
+					players.add(p);
+				}
+			}
+			
+			int i = 0;
+			for(Player p: players){
+				i++;
+				Server.gameWorld.removePlayerFromWorld(p);
+			}
+			System.out.println("清理了" + i + "个用户。");
+			return;
+		}
 		
 		int roomid = 0;
 		int rnd = 0;

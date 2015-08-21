@@ -534,7 +534,7 @@ class Main {
     public static loginState: LoginState;
     public static lobbyState: LobbyState;
 	public static playState: PlayState;
-	public static version: string = "4";
+	public static version: string = "5";
 	public static myName: string = "";
 
 	private static freeze: boolean = false;

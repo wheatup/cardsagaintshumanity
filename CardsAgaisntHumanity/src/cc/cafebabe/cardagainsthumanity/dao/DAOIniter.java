@@ -1,12 +1,9 @@
 package cc.cafebabe.cardagainsthumanity.dao;
 
-import java.util.Set;
-
-import cc.cafebabe.cardagainsthumanity.entities.BlackCard;
-import cc.cafebabe.cardagainsthumanity.entities.Player;
-import cc.cafebabe.cardagainsthumanity.entities.WhiteCard;
+import cc.cafebabe.cardagainsthumanity.consts.TaskType;
+import cc.cafebabe.cardagainsthumanity.server.Server;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
-import cc.cafebabe.cardagainsthumanity.service.PlayerService;
+import cc.cafebabe.cardagainsthumanity.util.Task;
 
 public class DAOIniter
 {
@@ -37,6 +34,8 @@ public class DAOIniter
 						e.printStackTrace();
 					}
 					BaseDAO.commit();
+					String pack = "{\"t\":\"check\"}";
+					Server.handler.addTask(new Task(null, TaskType.TIMER, pack));
 				}
 			}
 		}).start();

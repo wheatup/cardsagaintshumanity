@@ -664,7 +664,7 @@ var Main = (function () {
         jQuery("#statArea #levelBarBack").css("width", (remainExp / needExp * 100) + "%");
     };
     Main.isHost = false;
-    Main.version = "4";
+    Main.version = "5";
     Main.myName = "";
     Main.freeze = false;
     return Main;
