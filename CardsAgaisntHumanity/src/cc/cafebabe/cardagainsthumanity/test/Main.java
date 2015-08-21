@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import cc.cafebabe.cardagainsthumanity.dao.BaseDAO;
 import cc.cafebabe.cardagainsthumanity.dao.DAOIniter;
 import cc.cafebabe.cardagainsthumanity.service.CardsService;
 
@@ -23,22 +24,25 @@ public class Main
 //		CardsService.addCardPack("Aµº", 75);
 //		CardsService.addCardPack("×÷ËÀ", 100);
 		
-		File f1 = new File("C:\\CAHData\\cards\\whitecards_ex.card");
-		File f2 = new File("C:\\CAHData\\cards\\blackcards_ex.card");
+		File f1 = new File("C:\\cah\\cah.txt");
+		File f2 = new File("C:\\cah\\cah2.txt");
 		try {
 			FileReader fr = new FileReader(f1);
 			BufferedReader br = new BufferedReader(fr);
 			String s = null;
 			while((s = br.readLine()) != null){
-				CardsService.addWhiteCard(1, s, 2);
+				System.out.println(s);
+				CardsService.addBlackCard(1, s, 10);
 			}
 			
 			fr = new FileReader(f2);
 			br = new BufferedReader(fr);
 			while((s = br.readLine()) != null){
-				CardsService.addBlackCard(1, s, 2);
+				System.out.println(s);
+				CardsService.addWhiteCard(1, s, 10);
 			}
 			CardsService.approveAllCards();
+			BaseDAO.commit();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

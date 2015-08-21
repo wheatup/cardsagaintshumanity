@@ -19,25 +19,25 @@ public class DAOIniter
 	
 	private static void initData(){
 		System.out.println("服务器已启动。");
-		CardsService.loadAllCards();
-		new Thread(new Runnable()
-		{
-			public void run()
-			{
-				while(true){
-					try
-					{
-						Thread.sleep(60000);
-					}
-					catch(InterruptedException e)
-					{
-						e.printStackTrace();
-					}
-					BaseDAO.commit();
-					String pack = "{\"t\":\"check\"}";
-					Server.handler.addTask(new Task(null, TaskType.TIMER, pack));
-				}
-			}
-		}).start();
+		//CardsService.loadAllCards();
+//		new Thread(new Runnable()
+//		{
+//			public void run()
+//			{
+//				while(true){
+//					try
+//					{
+//						Thread.sleep(60000);
+//					}
+//					catch(InterruptedException e)
+//					{
+//						e.printStackTrace();
+//					}
+//					BaseDAO.commit();
+//					String pack = "{\"t\":\"check\"}";
+//					Server.handler.addTask(new Task(null, TaskType.TIMER, pack));
+//				}
+//			}
+//		}).start();
 	}
 }
